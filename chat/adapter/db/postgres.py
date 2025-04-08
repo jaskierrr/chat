@@ -10,6 +10,7 @@ from sqlalchemy import (
     Table,
     Column,
     String,
+    func,
 )
 import uuid
 import asyncio
@@ -17,9 +18,9 @@ from hashlib import pbkdf2_hmac
 
 from config import config
 
+
 class Base(DeclarativeBase):
     pass
-
 
 
 user_room = Table(
@@ -29,35 +30,40 @@ user_room = Table(
     Column("room_id", UUID(as_uuid=True), ForeignKey("rooms.id"), primary_key=True),
 )
 
+
 def compute_new_password_hash(password: str, salt: str):
     iterations = 100
 
-    return pbkdf2_hmac('sha512', password.encode(), salt.encode(), iterations)
-
+    return pbkdf2_hmac("sha512", password.encode(), salt.encode(), iterations)
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), comment="User ID", primary_key=True
+        UUID(as_uuid=True),
+        comment="User ID",
+        primary_key=True,
+        server_default=func.gen_random_uuid()
     )
     login: Mapped[str] = mapped_column(String(50))
-    _password: Mapped[bytes] = mapped_column(LargeBinary)
+    password: Mapped[bytes] = mapped_column(LargeBinary)
 
     @hybrid_property
-    def password(self):
+    def password_(self):
         """Return the hashed user password."""
-        return self._password
+        return self.password
 
     @password.setter
-    async def password(self, new_pass):
+    async def password_(self, new_pass):
         """Salt/Hash and save the user's new password."""
         loop = asyncio.get_event_loop()
 
-        new_password_hash = await loop.run_in_executor(None, compute_new_password_hash, new_pass, config.config.password.salt)
+        new_password_hash = await loop.run_in_executor(
+            None, compute_new_password_hash, new_pass, config.config.password.salt
+        )
         # new_password_hash = compute_new_password_hash(new_pass, self._salt)
-        self._password = new_password_hash
+        self.password = new_password_hash
 
 
 class Room(Base):

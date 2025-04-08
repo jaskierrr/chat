@@ -8,7 +8,7 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 
 
-from chat.adapter.db.user_repo import user_repo
+from chat.adapter.db.user_repo import UserRepo
 from chat.auth import auth
 from chat.entrypoint.shemas.request_shemas import UserLogin
 
@@ -52,7 +52,15 @@ manager = ConnectionManager()
 
 @m_router.get("/", response_class=HTMLResponse)
 async def send_login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    # return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("register.html", {"request": request})
+
+@m_router.post("/register")
+async def provide_register(user: UserLogin):
+    user_repo = UserRepo()
+    await user_repo.create(user)
+
+    return Response(status_code=200)
 
 
 @m_router.post("/login")
@@ -60,7 +68,8 @@ async def provide_login(user: UserLogin):
     # TODO сделать запрос в бд и проверить юзера
     if True:
         # print(user.username)
-        auth.authenticate_user('change to db', user)
+        user_repo = UserRepo()
+        await auth.authenticate_user(user_repo, user)
 
         token = auth.encodeJWT(user)
         print('\ntoken', token, end='\n')

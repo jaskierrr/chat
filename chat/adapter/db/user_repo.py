@@ -1,25 +1,35 @@
 from sqlalchemy import select
-from sqlalchemy.orm.session import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from chat.adapter.db.postgres import User
 from chat.const import POSTGRES_CONN
 from chat.container import main_container
+from chat.entrypoint.shemas.request_shemas import UserLogin
 
 
 class UserRepo:
-    def __init__(self, session: Session) -> None:
-        self.session = session
+    session: AsyncSession
+    def __init__(self) -> None:
+        self.session = self._get_session()
 
-    async def create(self, login, password):
-        pass
+    async def create(self, user_data: UserLogin):
+        async with self.session() as session:
+            new_user = User(**user_data.model_dump())
+            user = session.add(new_user)
+            await session.commit()
+
+        return user
+
 
     async def get(self, login) -> User:
-        sql = select(User).where(User.login == login)
-        result = await self.session.execute(sql)
-        self.session.commit()
+        async with self.session() as session:
+            sql = select(User).where(User.login == login)
+            result = await session.execute(sql)
+            session.commit()
 
         return result.scalar_one()
 
-
-user_repo = UserRepo(main_container[POSTGRES_CONN])
-
+    def _get_session(self):
+        if session := main_container.get(POSTGRES_CONN):
+            return session
+        raise RuntimeError('Session not found')

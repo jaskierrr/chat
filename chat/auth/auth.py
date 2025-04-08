@@ -2,16 +2,16 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
 import jwt
 from jwt.exceptions import InvalidTokenError
-from chat.adapter.db.user_repo import user_repo
+from chat.adapter.db.user_repo import UserRepo
 from config import config
 
 from chat.entrypoint.shemas.request_shemas import UserLogin
 
 
-def authenticate_user(db, user: UserLogin):
+async def authenticate_user(db: UserRepo, user: UserLogin):
     # запрос в базу с проверкой пароля
 
-    user = user_repo.get(user.username)
+    user = await db.get(user.login)
     print(user)
 
     return True
@@ -23,7 +23,7 @@ def encodeJWT(user: UserLogin):
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
 
-    payload = {"sub": user.username, "exp": exp}
+    payload = {"sub": user.login, "exp": exp}
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 

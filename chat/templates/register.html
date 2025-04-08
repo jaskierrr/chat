@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Страница логина</title>
+</head>
+<body>
+  <h1>Вход в систему</h1>
+  <form id="loginForm">
+    <label for="username">Имя пользователя:</label>
+    <input type="text" id="username" name="username" required>
+    <br>
+    <label for="password">Пароль:</label>
+    <input type="password" id="password" name="password" required>
+    <br>
+    <button type="submit">Войти</button>
+  </form>
+
+  <script>
+    document.getElementById("loginForm").addEventListener("submit", async function(event) {
+      event.preventDefault();
+
+      // Получаем значения из формы
+      const login = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      try {
+        // Отправляем запрос на /login в формате JSON
+        const response = await fetch("/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ login, password }),
+          // Отключаем автоматическое следование редиректам
+          redirect: "manual"
+        });
+
+
+        //headers = {}
+        //response.headers.forEach((value, key) =>
+        //
+        //    headers[key] = value;
+        //});
+
+        //console.log(headers)
+
+        // Извлекаем токен из заголовка ответа
+        const token = response.headers.get("authorization");
+
+
+        console.log("Получен токен:", token);
+
+        // Если сервер возвращает редирект (например, статус 302), извлекаем URL из заголовка Location
+        //if (response.status === 302 || response.status === 301) {
+          const redirectUrl = response.headers.get("location");
+          console.log(redirectUrl)
+          if (redirectUrl) {
+            // При необходимости можно сохранить токен в localStorage или обработать его иным образом
+            // Выполняем редирект на относительный путь (например, /chat)
+            window.location.href = redirectUrl;
+          }
+        //}
+        //else {
+        //  console.error("Неожиданный статус ответа:", response.status);
+        //}
+      } catch (error) {
+        console.error("Ошибка при выполнении запроса:", error);
+      }
+    });
+  </script>
+</body>
+</html>
+

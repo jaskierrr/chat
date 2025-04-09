@@ -12,18 +12,22 @@ async def authenticate_user(db: UserRepo, user: UserLogin):
     # запрос в базу с проверкой пароля
 
     user = await db.get(user.login)
-    print(user)
+    print(user.login)
 
     return True
 
 
 def encodeJWT(user: UserLogin):
     if config.auth.ttl:
-        exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
+        # exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
+        exp = datetime.now(tz=timezone.utc) + timedelta(seconds=100000)
+        pass
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
 
+    print(user.login)
     payload = {"sub": user.login, "exp": exp}
+    print(payload)
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 
@@ -34,10 +38,17 @@ def decodeJWT(token: str):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    credentials_exception_for_sub = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="sub field in token is None",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    print('\n\ntoken in decode', token)
     try:
         payload = jwt.decode(token, config.auth.secret, "HS512")
+        print('\n\npayload', payload)
         if payload.get("sub") is None:
-            raise credentials_exception
+            raise credentials_exception_for_sub
     except InvalidTokenError:
         raise credentials_exception
 

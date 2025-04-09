@@ -8,9 +8,8 @@ from chat.entrypoint.shemas.request_shemas import UserLogin
 
 
 class UserRepo:
-    session: AsyncSession
     def __init__(self) -> None:
-        self.session = self._get_session()
+        self.session: AsyncSession = self._get_session()
 
     async def create(self, user_data: UserLogin):
         async with self.session() as session:

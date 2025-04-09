@@ -15,13 +15,14 @@
     <br>
     <button type="submit">Войти</button>
   </form>
+  <a href="/reg">Регистрация</a>
 
   <script>
     document.getElementById("loginForm").addEventListener("submit", async function(event) {
       event.preventDefault();
 
       // Получаем значения из формы
-      const username = document.getElementById("username").value;
+      const login = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
       try {
@@ -31,7 +32,7 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ login, password }),
           // Отключаем автоматическое следование редиректам
           redirect: "manual"
         });

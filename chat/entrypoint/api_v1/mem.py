@@ -49,18 +49,23 @@ manager = ConnectionManager()
 #
 #     return templates.TemplateResponse("index.html", {"request": request})
 
+@m_router.get("/reg", response_class=HTMLResponse)
+async def send_register_page(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
 
 @m_router.get("/", response_class=HTMLResponse)
 async def send_login_page(request: Request):
-    # return templates.TemplateResponse("login.html", {"request": request})
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse("login.html", {"request": request})
 
 @m_router.post("/register")
 async def provide_register(user: UserLogin):
     user_repo = UserRepo()
     await user_repo.create(user)
 
-    return Response(status_code=200)
+    response =  Response(status_code=200)
+    response.headers["location"] = "/chat"
+
+    return response
 
 
 @m_router.post("/login")
@@ -76,7 +81,7 @@ async def provide_login(user: UserLogin):
 
         response = Response(status_code=200)
         # response.headers["authorization"] = token
-        # response.set_cookie(key='token', value=token)
+        response.set_cookie(key='token', value=token)
         response.headers["location"] = "/chat"
 
 
@@ -100,8 +105,8 @@ async def get(request: Request):
     try:
         auth.decodeJWT(token)
         return templates.TemplateResponse("index.html", {"request": request})
-    except Exception:
-        print('\n\nIncorrect token')
+    except Exception as err:
+        print('\n\nIncorrect token', err)
         return templates.TemplateResponse("login.html", {"request": request})
 
 

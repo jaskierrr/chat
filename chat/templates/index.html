@@ -31,6 +31,7 @@
         function sendMessage() {
             const input = document.getElementById('message-input');
             const message = input.value;
+            // отправить json с
             if (message) {
                 socket.send(message);
                 input.value = '';

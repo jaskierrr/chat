@@ -24,7 +24,7 @@ class UserRepo:
         async with self.session() as session:
             sql = select(User).where(User.login == login)
             result = await session.execute(sql)
-            session.commit()
+            await session.commit()
 
         return result.scalar_one()
 

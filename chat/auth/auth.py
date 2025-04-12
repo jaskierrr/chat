@@ -12,7 +12,6 @@ async def authenticate_user(db: UserRepo, user: UserLogin):
     # запрос в базу с проверкой пароля
 
     user = await db.get(user.login)
-    print(user.login)
 
     return True
 
@@ -25,9 +24,7 @@ def encodeJWT(user: UserLogin):
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
 
-    print(user.login)
     payload = {"sub": user.login, "exp": exp}
-    print(payload)
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 
@@ -43,10 +40,8 @@ def decodeJWT(token: str):
         detail="sub field in token is None",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    print('\n\ntoken in decode', token)
     try:
         payload = jwt.decode(token, config.auth.secret, "HS512")
-        print('\n\npayload', payload)
         if payload.get("sub") is None:
             raise credentials_exception_for_sub
     except InvalidTokenError:

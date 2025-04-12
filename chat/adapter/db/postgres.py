@@ -42,11 +42,10 @@ class User(Base):
         UUID(as_uuid=True),
         comment="User ID",
         primary_key=True,
-        unique=True,
         # server_default=func.gen_random_uuid()
         default=uuid.uuid4
     )
-    login: Mapped[str] = mapped_column(String(50))
+    login: Mapped[str] = mapped_column(String(50), unique=True)
     _password: Mapped[bytes] = mapped_column(LargeBinary, name='password')
 
     @hybrid_property

@@ -26,6 +26,7 @@ class Config(BaseSettings):
     server: ServerSettings
     password: PasswordSettings
     auth: AuthSettings
+    log_level: str = 'INFO'
 
     model_config = SettingsConfigDict(env_nested_delimiter='__', env_file=['.env'])
 

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from chat.adapter.db.postgres import User
 from chat.const import POSTGRES_CONN
 from chat.container import main_container
-from chat.entrypoint.shemas.request_shemas import UserLogin
+from chat.entrypoint.schemas.request_schemas import UserLogin
 
 
 class UserRepo:

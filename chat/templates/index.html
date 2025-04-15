@@ -5,22 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FastAPI + HTMX</title>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!--<script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>-->
+    <script src="https://unpkg.com/htmx-ext-ws@2.0.2"></script>
 </head>
 <body>
     <h1>Отправка сообщений</h1>
-    <input type="text" id="message-input" placeholder="Введите сообщение">
-    <button hx-on:click="sendMessage()">Send</button>
-    <div id="messages"></div>
+    <div hx-ext="ws" ws-connect="/ws" hx-on:htmx:wsBeforeSend="prepareJson(event)">
+        <form id="myForm" ws-send>
+            <input type="text" name="text" placeholder="Введите текст">
+            <button type="submit">Отправить</button>
+        </form>
+        <div id="response"></div>
+    </div>
 
     <script>
-        //const token = Headers.get("authorization");
-        //console.log(token)
-        console.log(document.cookie)
-        token = document.cookie.split('=')[1]
-
-        console.log(token)
-
         const socket = new WebSocket('ws://localhost:8080/ws' + '?token=' + token);
+
+        const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || '';
+        console.log(token)
 
         socket.onmessage = function(event) {
             const message = event.data;
@@ -33,10 +35,42 @@
             const message = input.value;
             // отправить json с
             if (message) {
+                prepareJson(event, text)
                 socket.send(message);
                 input.value = '';
             }
         }
+
+        function prepareJson(event, text) {
+            console.log('prepareJson start')
+            // Получаем данные из формы
+            const form = event.target;
+            const formData = new FormData(form);
+            //const text = formData.get('text');
+
+            // Формируем JSON
+            const jsonData = {
+                head: {
+                    type: "command",
+                    command: "get_room",
+                    timestamp: new Date().toISOString(),
+                    token: token
+                },
+                body: {
+                    text: text
+                }
+            };
+
+            // Заменяем данные для отправки через WebSocket
+            event.detail.message = JSON.stringify(jsonData);
+            console.log(event.detail.message)
+
+            // Предотвращаем отправку стандартных данных формы
+            event.preventDefault();
+        }
+
+            // Экспорт функции в глобальную область видимости
+        window.prepareJson = prepareJson;
     </script>
 </body>
 </html>

@@ -5,7 +5,7 @@ from jwt.exceptions import InvalidTokenError
 from chat.adapter.db.user_repo import UserRepo
 from config import config
 
-from chat.entrypoint.shemas.request_shemas import UserLogin
+from chat.entrypoint.schemas.request_schemas import UserLogin
 
 
 async def authenticate_user(db: UserRepo, user: UserLogin):
@@ -54,5 +54,5 @@ def decodeJWT(token: str):
     #
     # return user
 
-    print('Token correct')
+    print("Token correct")
     return True

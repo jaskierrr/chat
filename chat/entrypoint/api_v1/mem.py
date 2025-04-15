@@ -27,6 +27,7 @@ from chat.entrypoint.schemas.request_schemas import UserLogin
 import logging
 
 
+logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
 logger = logging.getLogger(__file__)
 
 m_router = APIRouter()
@@ -89,11 +90,16 @@ async def provide_register(user: UserLogin, request: Request):
         await user_repo.create(user)
     except (UniqueViolationError, IntegrityError) as err:
         logger.info(f"Error occured: {err}")
-    return templates.TemplateResponse(
-        "register.html", {"request": request}, status_code=422
-    )
+
+        return templates.TemplateResponse(
+            "register.html", {"request": request}, status_code=422
+        )
+
+    token = auth.encodeJWT(user)
+    print("\ntoken", token)
 
     response = Response(status_code=200)
+    response.set_cookie(key="token", value=token)
     response.headers["location"] = "/chat"
 
     return response
@@ -108,16 +114,15 @@ async def provide_login(user: UserLogin, request: Request):
         try:
             await auth.authenticate_user(user_repo, user)
         except NoResultFound as err:
-            logger.info(f"Error occured: {err}")
+            logger.error(f"Error occured: {err}")
             return templates.TemplateResponse(
                 "login.html", {"request": request}, status_code=401
             )
 
         token = auth.encodeJWT(user)
-        print("\ntoken", token, end="\n")
+        logger.info("\ntoken", token)
 
         response = Response(status_code=200)
-        # response.headers["authorization"] = token
         response.set_cookie(key="token", value=token)
         response.headers["location"] = "/chat"
 
@@ -136,7 +141,7 @@ async def get(request: Request):
         auth.decodeJWT(token)
         return templates.TemplateResponse("index.html", {"request": request})
     except Exception as err:
-        print("\n\nIncorrect token", err)
+        logger.info("\n\nIncorrect token", err)
         return templates.TemplateResponse("login.html", {"request": request})
 
 
@@ -197,8 +202,9 @@ async def websocket_endpoint(
         # сменить на async
         while True:
             data = await websocket.receive_text()
-            message = WSMessage.model_validate_json(data)
             print(f"Received message: {data}")
-            await manager.router(data)
+            # message = WSMessage.model_validate_json(data)
+            # logger.info(f"Received message: {data}")
+            # await manager.router(message)
     except WebSocketDisconnect:
         manager.disconnect(websocket)

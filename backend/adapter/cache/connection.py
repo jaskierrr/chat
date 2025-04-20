@@ -1,6 +1,6 @@
-from chat.container import main_container
-from chat.config import config
-from chat.const import REDIS
+from backend.container import main_container
+from backend.config import config
+from backend.const import REDIS
 import redis
 
 

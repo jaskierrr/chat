@@ -36,24 +36,6 @@
           // Отключаем автоматическое следование редиректам
           redirect: "manual"
         });
-
-
-        //headers = {}
-        //response.headers.forEach((value, key) =>
-        //
-        //    headers[key] = value;
-        //});
-
-        //console.log(headers)
-
-        // Извлекаем токен из заголовка ответа
-        //const token = response.headers.get("authorization");
-
-
-        //console.log("Получен токен:", token);
-
-        // Если сервер возвращает редирект (например, статус 302), извлекаем URL из заголовка Location
-        //if (response.status === 302 || response.status === 301) {
           const redirectUrl = response.headers.get("location");
           //console.log(redirectUrl)
           if (redirectUrl) {
@@ -61,10 +43,6 @@
             // Выполняем редирект на относительный путь (например, /chat)
             window.location.href = redirectUrl;
           }
-        //}
-        //else {
-        //  console.error("Неожиданный статус ответа:", response.status);
-        //}
       } catch (error) {
         console.error("Ошибка при выполнении запроса:", error);
       }

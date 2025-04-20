@@ -9,7 +9,8 @@ from fastapi import (
     WebSocketException,
     status,
 )
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.encoders import jsonable_encoder
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from asyncpg.exceptions import UniqueViolationError
@@ -20,20 +21,23 @@ from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 
 
-from chat.adapter.db.user_repo import UserRepo
-from chat.auth import auth
-from chat.entrypoint.schemas.ws_schemas import WSMessage
-from chat.entrypoint.schemas.request_schemas import UserLogin
-import logging
+from backend.adapter.db.user_repo import UserRepo
+from backend.auth import auth
+from backend.config import config
+from backend.entrypoint.schemas.ws_schemas import WSMessage
+from backend.entrypoint.schemas.request_schemas import UserLogin
+from logging import getLevelName, basicConfig, getLogger
 
 
-logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
-logger = logging.getLogger(__file__)
+print(getLevelName(config.log_level))
+basicConfig(format="%(levelname)s: %(message)s", level=getLevelName(config.log_level))
+logger = getLogger(__file__)
 
 m_router = APIRouter()
 
 
-templates = Jinja2Templates(directory="chat/templates")
+# templates = Jinja2Templates(directory="backend/templates")
+templates = Jinja2Templates(directory="frontend")
 
 
 # Менеджер подключений для работы с WebSocket
@@ -79,7 +83,8 @@ async def send_register_page(request: Request):
 
 @m_router.get("/", response_class=HTMLResponse)
 async def send_login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    # return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request})
 
 
 @m_router.post("/register")
@@ -106,25 +111,28 @@ async def provide_register(user: UserLogin, request: Request):
 
 
 @m_router.post("/login")
-async def provide_login(user: UserLogin, request: Request):
+async def provide_login(user_data: UserLogin, request: Request):
     # TODO сделать запрос в бд и проверить юзера
     if True:
         # print(user.username)
         user_repo = UserRepo()
         try:
-            await auth.authenticate_user(user_repo, user)
+            user = await auth.authenticate_user(user_repo, user_data)
         except NoResultFound as err:
             logger.error(f"Error occured: {err}")
-            return templates.TemplateResponse(
-                "login.html", {"request": request}, status_code=401
-            )
+            # return templates.TemplateResponse(
+            #     "login.html", {"request": request}, status_code=401
+            # )
+            response = JSONResponse(content={'error': f'user not found: {err}'}, status_code=404)
+            return response
 
-        token = auth.encodeJWT(user)
+        token = auth.encodeJWT(user_data)
         # logger.info("\ntoken", token)
-
-        response = Response(status_code=200)
+        res = {'login': user.login, 'id': str(user.id)}
+        print(res)
+        response = JSONResponse(content=res, status_code=200)
         response.set_cookie(key="token", value=token)
-        response.headers["location"] = "/chat"
+        # response.headers["location"] = "/chat"
 
     return response
 

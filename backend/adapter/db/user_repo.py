@@ -1,10 +1,10 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from chat.adapter.db.postgres import User
-from chat.const import POSTGRES_CONN
-from chat.container import main_container
-from chat.entrypoint.schemas.request_schemas import UserLogin
+from backend.adapter.db.postgres import User
+from backend.const import POSTGRES_CONN
+from backend.container import main_container
+from backend.entrypoint.schemas.request_schemas import UserLogin
 
 
 class UserRepo:

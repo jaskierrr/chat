@@ -2,10 +2,10 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
 import jwt
 from jwt.exceptions import InvalidTokenError
-from chat.adapter.db.user_repo import UserRepo
-from config import config
+from backend.adapter.db.user_repo import UserRepo
+from backend.config import config
 
-from chat.entrypoint.schemas.request_schemas import UserLogin
+from backend.entrypoint.schemas.request_schemas import UserLogin
 
 
 async def authenticate_user(db: UserRepo, user: UserLogin):
@@ -13,7 +13,7 @@ async def authenticate_user(db: UserRepo, user: UserLogin):
 
     user = await db.get(user.login)
 
-    return True
+    return user
 
 
 def encodeJWT(user: UserLogin):

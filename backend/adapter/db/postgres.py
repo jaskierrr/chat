@@ -14,7 +14,7 @@ from sqlalchemy import (
 import uuid
 from hashlib import pbkdf2_hmac
 
-from chat.config import config
+from backend.config import config
 
 
 class Base(DeclarativeBase):
@@ -42,8 +42,8 @@ class User(Base):
         UUID(as_uuid=True),
         comment="User ID",
         primary_key=True,
-        # server_default=func.gen_random_uuid()
         default=uuid.uuid4,
+        unique=True,
     )
     login: Mapped[str] = mapped_column(String(50), unique=True)
     _password: Mapped[bytes] = mapped_column(LargeBinary, name="password")
@@ -69,7 +69,11 @@ class Room(Base):
     __tablename__ = "rooms"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), comment="Room ID", primary_key=True
+        UUID(as_uuid=True),
+        comment="Room ID",
+        primary_key=True,
+        default=uuid.uuid4,
+        unique=True,
     )
     name: Mapped[str] = mapped_column(String(100))
 
@@ -78,7 +82,11 @@ class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), comment="Room ID", primary_key=True
+        UUID(as_uuid=True),
+        comment="Room ID",
+        primary_key=True,
+        default=uuid.uuid4,
+        unique=True,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     body: Mapped[str] = mapped_column(String(500), nullable=False)

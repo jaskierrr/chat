@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPA Chat App</title>
+    <style>
+        /* Темная тема приложения */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1e1e1e;
+            /* мягкий тёмно-серый фон */
+            color: #f0f0f0;
+            /* светлый текст */
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            max-width: 600px;
+            margin: 50px auto;
+            background: #2a2a2a;
+            /* немного светлее фона для контраста */
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input[type=text],
+        input[type=password] {
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: #3a3a3a;
+            color: #f0f0f0;
+        }
+
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #3d7eff;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #2f5fd4;
+        }
+
+        .error {
+            color: #ff5c5c;
+            margin-top: 10px;
+        }
+
+        #chats-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        #chats-list li {
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            cursor: pointer;
+            background-color: #2d2d2d;
+            color: #f0f0f0;
+        }
+
+        #chats-list li:hover {
+            background-color: #3a3a3a;
+        }
+
+        #messages-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #2f2f2f;
+            border-radius: 4px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+        }
+
+        .message .author {
+            font-weight: bold;
+            color: #84bfff;
+            /* оттенок синих акцентов */
+        }
+
+        #message-form {
+            display: flex;
+            gap: 10px;
+        }
+
+        #message-input {
+            flex: 1;
+            background-color: #3a3a3a;
+            border: 1px solid #555;
+            color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+
+</head>
+
+<body>
+    <div id="app">
+        <!-- login page -->
+        <div id="page-login" class="page active">
+            <h2>Войти</h2>
+            <form id="login-form">
+                <input type="text" id="login" placeholder="Имя пользователя" required>
+                <input type="password" id="password" placeholder="Пароль" required>
+                <button type="submit">Войти</button>
+            </form>
+            <div id="login-error" class="error"></div>
+        </div>
+
+        <!-- chats list page-->
+        <div id="page-chats" class="page">
+            <h2>Список чатов</h2>
+            <ul id="chats-list"></ul>
+        </div>
+
+        <!-- chat page -->
+        <div id="page-chat" class="page">
+            <button id="back-to-chats">← Назад</button>
+            <h2 id="chat-title"></h2>
+            <div id="messages-container"></div>
+            <form id="message-form">
+                <input type="text" id="message-input" placeholder="Напишите сообщение..." required>
+                <button type="submit">Отправить</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const pages = {
+            login_page: document.getElementById('page-login'),
+            chats: document.getElementById('page-chats'),
+            chat: document.getElementById('page-chat'),
+        };
+        const room_id = 0
+
+        let currentChatId = null;
+
+        function showPage(page) {
+            Object.values(pages).forEach(p => p.classList.remove('active'));
+            pages[page].classList.add('active');
+        }
+
+        // LOGIN
+        document.getElementById('login-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const login = document.getElementById('login').value;
+            const pass = document.getElementById('password').value;
+            try {
+                const res = await fetch('/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({login: login, password: pass})
+                });
+
+                if (res.ok) {
+                    //console.log(res.json())
+                    user = res.json()
+                    console.log('user:', user)
+                    showPage('chats');
+                    loadChats();
+                } else {
+                    const data = await res.json();
+                    document.getElementById('login-error').innerText = data.error || 'Ошибка авторизации';
+                }
+            } catch (err) {
+                document.getElementById('login-error').innerText = 'Сервер недоступен: ' + err;
+            }
+        });
+
+        // LOAD CHATS
+        async function loadChats() {
+            try {
+                const res = await fetch('/api/chats');
+                const list = await res.json();
+                const ul = document.getElementById('chats-list');
+                ul.innerHTML = '';
+                list.forEach(chat => {
+                    const li = document.createElement('li');
+                    li.innerText = chat.name;
+                    li.addEventListener('click', () => selectChat(chat.id, chat.name));
+                    ul.appendChild(li);
+                });
+            } catch (err) {
+                alert('Не удалось загрузить список чатов');
+            }
+        }
+
+        // SELECT CHAT
+        function selectChat(id, name) {
+            currentChatId = id;
+            document.getElementById('chat-title').innerText = name;
+            showPage('chat');
+            loadMessages(id);
+        }
+
+        document.getElementById('back-to-chats').addEventListener('click', () => {
+            showPage('chats');
+        });
+
+        // LOAD MESSAGES
+        async function loadMessages(chatId) {
+            try {
+                const res = await fetch(`/api/chats/${chatId}/messages`);
+                const messages = await res.json();
+                const container = document.getElementById('messages-container');
+                container.innerHTML = '';
+                messages.forEach(msg => {
+                    const div = document.createElement('div');
+                    div.classList.add('message');
+                    div.innerHTML = `<div class=\"author\">${msg.author}</div><div class=\"text\">${msg.text}</div>`;
+                    container.appendChild(div);
+                });
+                container.scrollTop = container.scrollHeight;
+            } catch (err) {
+                alert('Не удалось загрузить сообщения');
+            }
+        }
+
+        // SEND MESSAGE
+        document.getElementById('message-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const text = document.getElementById('message-input').value;
+            if (!text) return;
+            try {
+                const res = await fetch(`/api/chats/${currentChatId}/messages`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({text})
+                });
+                if (res.ok) {
+                    document.getElementById('message-input').value = '';
+                    loadMessages(currentChatId);
+                } else {
+                    alert('Ошибка при отправке сообщения');
+                }
+            } catch (err) {
+                alert('Сервер недоступен');
+            }
+        });
+    </script>
+</body>
+
+</html>

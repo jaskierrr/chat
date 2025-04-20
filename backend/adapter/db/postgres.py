@@ -12,14 +12,13 @@ from sqlalchemy import (
     String,
 )
 import uuid
-import asyncio
 from hashlib import pbkdf2_hmac
 
-from config import config
+from chat.config import config
+
 
 class Base(DeclarativeBase):
     pass
-
 
 
 user_room = Table(
@@ -29,21 +28,25 @@ user_room = Table(
     Column("room_id", UUID(as_uuid=True), ForeignKey("rooms.id"), primary_key=True),
 )
 
+
 def compute_new_password_hash(password: str, salt: str):
     iterations = 100
 
-    return pbkdf2_hmac('sha512', password.encode(), salt.encode(), iterations)
-
+    return pbkdf2_hmac("sha512", password.encode(), salt.encode(), iterations)
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), comment="User ID", primary_key=True
+        UUID(as_uuid=True),
+        comment="User ID",
+        primary_key=True,
+        # server_default=func.gen_random_uuid()
+        default=uuid.uuid4,
     )
-    login: Mapped[str] = mapped_column(String(50))
-    _password: Mapped[bytes] = mapped_column(LargeBinary)
+    login: Mapped[str] = mapped_column(String(50), unique=True)
+    _password: Mapped[bytes] = mapped_column(LargeBinary, name="password")
 
     @hybrid_property
     def password(self):
@@ -51,12 +54,14 @@ class User(Base):
         return self._password
 
     @password.setter
-    async def password(self, new_pass):
+    def password(self, new_pass):
         """Salt/Hash and save the user's new password."""
-        loop = asyncio.get_event_loop()
+        # loop = asyncio.get_event_loop()
 
-        new_password_hash = await loop.run_in_executor(None, compute_new_password_hash, new_pass, config.config.password.salt)
-        # new_password_hash = compute_new_password_hash(new_pass, self._salt)
+        # new_password_hash = await loop.run_in_executor(
+        #     None, compute_new_password_hash, new_pass, config.config.password.salt
+        # )
+        new_password_hash = compute_new_password_hash(new_pass, config.password.salt)
         self._password = new_password_hash
 
 

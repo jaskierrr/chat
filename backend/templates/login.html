@@ -15,13 +15,14 @@
     <br>
     <button type="submit">Войти</button>
   </form>
+  <a href="/reg">Регистрация</a>
 
   <script>
     document.getElementById("loginForm").addEventListener("submit", async function(event) {
       event.preventDefault();
 
       // Получаем значения из формы
-      const username = document.getElementById("username").value;
+      const login = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
       try {
@@ -31,7 +32,7 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ username, password }),
+          body: JSON.stringify({ login, password }),
           // Отключаем автоматическое следование редиректам
           redirect: "manual"
         });
@@ -46,15 +47,15 @@
         //console.log(headers)
 
         // Извлекаем токен из заголовка ответа
-        const token = response.headers.get("authorization");
+        //const token = response.headers.get("authorization");
 
 
-        console.log("Получен токен:", token);
+        //console.log("Получен токен:", token);
 
         // Если сервер возвращает редирект (например, статус 302), извлекаем URL из заголовка Location
         //if (response.status === 302 || response.status === 301) {
           const redirectUrl = response.headers.get("location");
-          console.log(redirectUrl)
+          //console.log(redirectUrl)
           if (redirectUrl) {
             // При необходимости можно сохранить токен в localStorage или обработать его иным образом
             // Выполняем редирект на относительный путь (например, /chat)

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI + HTMX</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <!--<script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>-->
+    <script src="https://unpkg.com/htmx-ext-ws@2.0.2"></script>
+</head>
+<body>
+
+    <h1>Отправка сообщений</h1>
+    <form id="myForm" ws-send>
+        <input type="text" name="text" id="text" placeholder="Введите текст">
+        <button hx-on:click="sendMessage()" type="submit">Отправить</button>
+    </form>
+    <div id="response"></div>
+
+    <script>
+        const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || '';
+        console.log(token)
+
+        const socket = new WebSocket('ws://localhost:8080/ws' + '?token=' + token);
+
+        socket.onmessage = function(event) {
+            const message = event.data;
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML += `<p>${message}</p>`;
+        };
+
+        function sendMessage() {
+            const input = document.getElementById('text');
+            const text = input.value;
+            // отправить json с
+            if (text) {
+                message = prepareJson(event, text)
+                console.log(message)
+                socket.send(message);
+                input.value = '';
+            }
+        }
+
+        function prepareJson(event, text) {
+            console.log('prepareJson start')
+
+            const jsonData = {
+                head: {
+                    type: "command",
+                    command: "/get_room",
+                    timestamp: new Date().toISOString(),
+                    token: token
+                },
+                body: {
+                    text: text
+                }
+            };
+
+            return JSON.stringify(jsonData)
+        }
+
+    </script>
+</body>
+</html>

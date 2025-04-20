@@ -11,7 +11,6 @@ from chat.entrypoint.api_v1.router import main_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_session()
-    print("start lifespan")
     await create_redis_pool()
     yield
     await close_session()
@@ -24,4 +23,6 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(main_router)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=config.server.port)
+    uvicorn.run(
+        app, host=config.server.host, port=config.server.port, log_level=config.log_level
+    )

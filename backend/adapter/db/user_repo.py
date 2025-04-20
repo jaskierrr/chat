@@ -19,7 +19,6 @@ class UserRepo:
 
         return user
 
-
     async def get(self, login) -> User:
         async with self.session() as session:
             sql = select(User).where(User.login == login)
@@ -31,4 +30,4 @@ class UserRepo:
     def _get_session(self):
         if session := main_container.get(POSTGRES_CONN):
             return session
-        raise RuntimeError('Session not found')
+        raise RuntimeError("Session not found")

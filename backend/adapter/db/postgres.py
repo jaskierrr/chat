@@ -43,10 +43,10 @@ class User(Base):
         comment="User ID",
         primary_key=True,
         # server_default=func.gen_random_uuid()
-        default=uuid.uuid4
+        default=uuid.uuid4,
     )
     login: Mapped[str] = mapped_column(String(50), unique=True)
-    _password: Mapped[bytes] = mapped_column(LargeBinary, name='password')
+    _password: Mapped[bytes] = mapped_column(LargeBinary, name="password")
 
     @hybrid_property
     def password(self):

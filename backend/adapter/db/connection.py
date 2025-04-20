@@ -13,6 +13,7 @@ async def create_session():
     main_container[POSTGRES_CONN] = connection
     print(main_container)
 
+
 async def close_session():
     if connection := main_container.get(POSTGRES_ENGINE):
         await connection.dispose()

@@ -27,7 +27,7 @@ from chat.entrypoint.schemas.request_schemas import UserLogin
 import logging
 
 
-logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG)
+logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.DEBUG)
 logger = logging.getLogger(__file__)
 
 m_router = APIRouter()
@@ -120,7 +120,7 @@ async def provide_login(user: UserLogin, request: Request):
             )
 
         token = auth.encodeJWT(user)
-        logger.info("\ntoken", token)
+        # logger.info("\ntoken", token)
 
         response = Response(status_code=200)
         response.set_cookie(key="token", value=token)
@@ -202,9 +202,9 @@ async def websocket_endpoint(
         # сменить на async
         while True:
             data = await websocket.receive_text()
-            print(f"Received message: {data}")
-            # message = WSMessage.model_validate_json(data)
-            # logger.info(f"Received message: {data}")
+            logger.info(f"Received message: {data}")
+            message = WSMessage.model_validate_json(data)
+            logger.info(f"Received message in class: {message}")
             # await manager.router(message)
     except WebSocketDisconnect:
         manager.disconnect(websocket)

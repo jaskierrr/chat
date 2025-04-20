@@ -9,20 +9,19 @@
     <script src="https://unpkg.com/htmx-ext-ws@2.0.2"></script>
 </head>
 <body>
+
     <h1>Отправка сообщений</h1>
-    <div hx-ext="ws" ws-connect="/ws" hx-on:htmx:wsBeforeSend="prepareJson(event)">
-        <form id="myForm" ws-send>
-            <input type="text" name="text" placeholder="Введите текст">
-            <button type="submit">Отправить</button>
-        </form>
-        <div id="response"></div>
-    </div>
+    <form id="myForm" ws-send>
+        <input type="text" name="text" id="text" placeholder="Введите текст">
+        <button hx-on:click="sendMessage()" type="submit">Отправить</button>
+    </form>
+    <div id="response"></div>
 
     <script>
-        const socket = new WebSocket('ws://localhost:8080/ws' + '?token=' + token);
-
         const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || '';
         console.log(token)
+
+        const socket = new WebSocket('ws://localhost:8080/ws' + '?token=' + token);
 
         socket.onmessage = function(event) {
             const message = event.data;
@@ -31,11 +30,12 @@
         };
 
         function sendMessage() {
-            const input = document.getElementById('message-input');
-            const message = input.value;
+            const input = document.getElementById('text');
+            const text = input.value;
             // отправить json с
-            if (message) {
-                prepareJson(event, text)
+            if (text) {
+                message = prepareJson(event, text)
+                console.log(message)
                 socket.send(message);
                 input.value = '';
             }
@@ -43,16 +43,11 @@
 
         function prepareJson(event, text) {
             console.log('prepareJson start')
-            // Получаем данные из формы
-            const form = event.target;
-            const formData = new FormData(form);
-            //const text = formData.get('text');
 
-            // Формируем JSON
             const jsonData = {
                 head: {
                     type: "command",
-                    command: "get_room",
+                    command: "/get_room",
                     timestamp: new Date().toISOString(),
                     token: token
                 },
@@ -61,16 +56,9 @@
                 }
             };
 
-            // Заменяем данные для отправки через WebSocket
-            event.detail.message = JSON.stringify(jsonData);
-            console.log(event.detail.message)
-
-            // Предотвращаем отправку стандартных данных формы
-            event.preventDefault();
+            return JSON.stringify(jsonData)
         }
 
-            // Экспорт функции в глобальную область видимости
-        window.prepareJson = prepareJson;
     </script>
 </body>
 </html>

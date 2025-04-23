@@ -126,12 +126,17 @@
             padding: 10px;
             border-radius: 4px;
         }
+
+        .login {
+            margin-bottom: 20px;
+        }
     </style>
 
 </head>
 
 <body>
     <div id="app">
+        <button class="login" onclick="showPage('login_page')">Login</button>
         <!-- login page -->
         <div id="page-login" class="page active">
             <h2>Войти</h2>
@@ -167,7 +172,8 @@
             chats: document.getElementById('page-chats'),
             chat: document.getElementById('page-chat'),
         };
-        const room_id = 0
+        const room_id = 0;
+        var user = null;
 
         let currentChatId = null;
 
@@ -175,6 +181,25 @@
             Object.values(pages).forEach(p => p.classList.remove('active'));
             pages[page].classList.add('active');
         }
+
+        // CHECK TOKEN ON STARTUP
+        (async function () {
+            console.log('Immediate check!');
+            await fetch('/token', {method: 'POST'})
+                .then(res => {
+                    if (res.status === 404) {
+                        console.error('Token invalid (404)');
+                    } else if (!res.ok) {
+                        console.error(`Somthing wrong, error: ${res.status}`);
+                    } else {
+                        showPage('chats');
+                        loadChats();
+                    }
+                })
+                .catch(err => {
+                    console.error('Сетевая ошибка или exception:', err);
+                });
+        })();
 
         // LOGIN
         document.getElementById('login-form').addEventListener('submit', async e => {
@@ -190,8 +215,15 @@
 
                 if (res.ok) {
                     //console.log(res.json())
-                    user = res.json()
-                    console.log('user:', user)
+                    result = res.json()
+                    result
+                        .then(res => {
+                            window.user = res;           // присваиваем значение перемису
+                            console.log(user); // теперь можно работать с userData
+                        })
+                        .catch(error => {
+                            console.error(error);
+                        });
                     showPage('chats');
                     loadChats();
                 } else {
@@ -205,8 +237,12 @@
 
         // LOAD CHATS
         async function loadChats() {
+            console.log(user.id)
             try {
-                const res = await fetch('/api/chats');
+                const res = await fetch('/rooms', {
+                    method: 'POST',
+                    body: user.id
+                });
                 const list = await res.json();
                 const ul = document.getElementById('chats-list');
                 ul.innerHTML = '';

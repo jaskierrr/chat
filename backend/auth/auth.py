@@ -18,8 +18,8 @@ async def authenticate_user(db: UserRepo, user: UserLogin):
 
 def encodeJWT(user: UserLogin):
     if config.auth.ttl:
-        # exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
-        exp = datetime.now(tz=timezone.utc) + timedelta(seconds=100000)
+        exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
+        # exp = datetime.now(tz=timezone.utc) + timedelta(seconds=100000)
         pass
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
@@ -54,5 +54,5 @@ def decodeJWT(token: str):
     #
     # return user
 
-    print("Token correct")
+    print("Token correct", token)
     return True

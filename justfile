@@ -4,8 +4,8 @@ docker:
 		docker compose up --build -d
 
 sql:
-    # sql-studio postgres postgresql://postgres:098098@localhost:5432/chat
-    rainfrog --url $DB__DSN_RAINFROG
+    sql-studio postgres postgresql://postgres:098098@localhost:5432/chat
+    # rainfrog --url $DB__DSN_RAINFROG
 
 redis:
     redis_tui -address localhost:6379 -db 0

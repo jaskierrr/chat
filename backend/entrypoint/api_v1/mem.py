@@ -10,7 +10,6 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.encoders import jsonable_encoder
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from asyncpg.exceptions import UniqueViolationError
@@ -18,9 +17,9 @@ from asyncpg.exceptions import UniqueViolationError
 from typing import Annotated
 
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
 
 
+from backend.adapter.db.rooms_repo import RoomsRepo
 from backend.adapter.db.user_repo import UserRepo
 from backend.auth import auth
 from backend.config import config
@@ -65,17 +64,6 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-# @m_router.get("/", response_class=HTMLResponse)
-# async def get(request: Request):
-#     if async_session := main_container.get(POSTGRES_CONN):
-#         async with async_session() as session:
-#             result = await session.execute(select(User))
-#             result = result.scalars().first()
-#             print(result.login)
-#
-#     return templates.TemplateResponse("index.html", {"request": request})
-
-
 @m_router.get("/reg", response_class=HTMLResponse)
 async def send_register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
@@ -109,6 +97,21 @@ async def provide_register(user: UserLogin, request: Request):
 
     return response
 
+@m_router.post("/token")
+async def validate_token(request: Request):
+    cookies = request.headers.get("cookie").split(";")
+    for cookie in cookies:
+        if "token=" in cookie:
+            token = cookie.split("=")[1]
+
+    # TODO: переделать, писать такой try/except неправильно
+    try:
+        auth.decodeJWT(token)
+        return Response(status_code=200)
+    except Exception:
+        return Response(status_code=404)
+
+
 
 @m_router.post("/login")
 async def provide_login(user_data: UserLogin, request: Request):
@@ -123,12 +126,14 @@ async def provide_login(user_data: UserLogin, request: Request):
             # return templates.TemplateResponse(
             #     "login.html", {"request": request}, status_code=401
             # )
-            response = JSONResponse(content={'error': f'user not found: {err}'}, status_code=404)
+            response = JSONResponse(
+                content={"error": f"user not found: {err}"}, status_code=404
+            )
             return response
 
         token = auth.encodeJWT(user_data)
         # logger.info("\ntoken", token)
-        res = {'login': user.login, 'id': str(user.id)}
+        res = {"login": user.login, "id": str(user.id)}
         print(res)
         response = JSONResponse(content=res, status_code=200)
         response.set_cookie(key="token", value=token)
@@ -137,58 +142,17 @@ async def provide_login(user_data: UserLogin, request: Request):
     return response
 
 
-@m_router.get("/chat")
+@m_router.get("/rooms")
 async def get(request: Request):
-    cookies = request.headers.get("cookie").split(";")
-    for cookie in cookies:
-        if "token=" in cookie:
-            token = cookie.split("=")[1]
-
-    # TODO: переделать, писать такой try/except неправильно
+    room_repo: RoomsRepo = RoomsRepo()
+    target_user_id = request.body()
     try:
-        auth.decodeJWT(token)
-        return templates.TemplateResponse("index.html", {"request": request})
+        rooms = await room_repo.get(target_user_id)
     except Exception as err:
-        logger.info("\n\nIncorrect token", err)
-        return templates.TemplateResponse("login.html", {"request": request})
+        logger.info("\n\nCant get rooms for user", err)
+        return Response(status_code=404)
 
-
-fake_users_db = {
-    "johndoe": {
-        "username": "johndoe",
-        "full_name": "John Doe",
-        "email": "johndoe@example.com",
-        "hashed_password": "pass",
-        "disabled": False,
-    },
-    "alice": {
-        "username": "alice",
-        "full_name": "Alice Wonderson",
-        "email": "alice@example.com",
-        "hashed_password": "fakehashedsecret2",
-        "disabled": True,
-    },
-}
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# TODO после регистрации вернуть токен
-# @m_router.post("/token")
-# async def login(request: Request, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-#     print(request.body(), 'aaa')
-#
-#     user_dict = fake_users_db.get(form_data.username)
-#     if not user_dict:
-#         raise HTTPException(status_code=400, detail="Incorrect username or password")
-#     # user = UserInDB(**user_dict)
-#     user = fake_users_db[form_data.username]
-#     # hashed_password = fake_hash_password(form_data.password)
-#     hashed_password = "pass"
-#     if not hashed_password == user["hashed_password"]:
-#         raise HTTPException(status_code=400, detail="Incorrect username or password")
-#
-#     return {"access_token": "lol", "token_type": "bearer"}
-
+    return JSONResponse(content=rooms, status_code=200)
 
 async def get_cookie_or_token(
     websocket: WebSocket,

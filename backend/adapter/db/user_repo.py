@@ -28,6 +28,7 @@ class UserRepo:
         return result.scalar_one()
 
     def _get_session(self):
+        print(main_container)
         if session := main_container.get(POSTGRES_CONN):
             return session
         raise RuntimeError("Session not found")

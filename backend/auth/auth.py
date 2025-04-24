@@ -2,13 +2,13 @@ from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
 import jwt
 from jwt.exceptions import InvalidTokenError
+from backend.adapter.db.postgres import User
 from backend.adapter.db.user_repo import UserRepo
 from backend.config import config
 
-from backend.entrypoint.schemas.request_schemas import UserLogin
 
 
-async def authenticate_user(db: UserRepo, user: UserLogin):
+async def authenticate_user(db: UserRepo, user: User):
     # запрос в базу с проверкой пароля
 
     user = await db.get(user.login)
@@ -16,7 +16,7 @@ async def authenticate_user(db: UserRepo, user: UserLogin):
     return user
 
 
-def encodeJWT(user: UserLogin):
+def encodeJWT(user: User):
     if config.auth.ttl:
         exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
         # exp = datetime.now(tz=timezone.utc) + timedelta(seconds=100000)
@@ -24,7 +24,9 @@ def encodeJWT(user: UserLogin):
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
 
-    payload = {"sub": user.login, "exp": exp}
+    print(user.id)
+
+    payload = {"login": user.login, "user_id": str(user.id), "exp": exp}
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 
@@ -42,7 +44,7 @@ def decodeJWT(token: str):
     )
     try:
         payload = jwt.decode(token, config.auth.secret, "HS512")
-        if payload.get("sub") is None:
+        if payload.get("login") is None or payload.get("user_id") is None:
             raise credentials_exception_for_sub
     except InvalidTokenError:
         raise credentials_exception
@@ -55,4 +57,4 @@ def decodeJWT(token: str):
     # return user
 
     print("Token correct", token)
-    return True
+    return payload["user_id"]

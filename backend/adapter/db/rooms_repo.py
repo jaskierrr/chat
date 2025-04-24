@@ -21,12 +21,10 @@ class RoomsRepo:
     async def get(self, target_user_id) -> User:
         async with self.session() as session:
             sql = select(Room).join(user_room).where(user_room.c.user_id == target_user_id)
-            result = await session.execute(sql).sqalars().all()
+            result = (await session.execute(sql)).scalars().all()
             await session.commit()
 
-            print(result)
-
-        return result.scalar_one()
+        return result
 
     def _get_session(self):
         if session := main_container.get(POSTGRES_CONN):

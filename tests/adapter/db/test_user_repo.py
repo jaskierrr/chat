@@ -11,11 +11,11 @@ def fake_main_container(monkeypatch, db_session):
 
 async def test_user_repo_get_user(create_user, fake, fake_main_container):
     users = [
-        {"login": fake.name(), "password": fake.str()},
-        {"login": fake.name(), "password": fake.str()},
-        {"login": fake.name(), "password": fake.str()},
+        {"login": fake.name(), "password": fake.pystr()},
+        {"login": fake.name(), "password": fake.pystr()},
+        {"login": fake.name(), "password": fake.pystr()},
     ]
-    users_db = [create_user(login=user['login'], password=user['password']) for user in users]
+    users_db = [await create_user(login=user['login'], password=user['password']) for user in users]
 
     repo = UserRepo()
 

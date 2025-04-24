@@ -192,6 +192,12 @@
                     } else if (!res.ok) {
                         console.error(`Somthing wrong, error: ${res.status}`);
                     } else {
+                        return res.json();
+                    }
+                })
+                .then(data => {
+                    if (data) {
+                        user = data
                         showPage('chats');
                         loadChats();
                     }
@@ -215,15 +221,15 @@
 
                 if (res.ok) {
                     //console.log(res.json())
-                    result = res.json()
-                    result
-                        .then(res => {
-                            window.user = res;           // присваиваем значение перемису
-                            console.log(user); // теперь можно работать с userData
-                        })
-                        .catch(error => {
-                            console.error(error);
-                        });
+                    user = await res.json()
+                    //result
+                    //    .then(res => {
+                    //        window.user = res;           // присваиваем значение перемису
+                    //        console.log(user); // теперь можно работать с userData
+                    //    })
+                    //    .catch(error => {
+                    //        console.error(error);
+                    //    });
                     showPage('chats');
                     loadChats();
                 } else {
@@ -238,23 +244,31 @@
         // LOAD CHATS
         async function loadChats() {
             console.log(user.id)
+            var list = ''
             try {
                 const res = await fetch('/rooms', {
                     method: 'POST',
-                    body: user.id
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({id: user.id})
                 });
-                const list = await res.json();
-                const ul = document.getElementById('chats-list');
-                ul.innerHTML = '';
-                list.forEach(chat => {
-                    const li = document.createElement('li');
-                    li.innerText = chat.name;
-                    li.addEventListener('click', () => selectChat(chat.id, chat.name));
-                    ul.appendChild(li);
-                });
+                list = await res.json();
             } catch (err) {
                 alert('Не удалось загрузить список чатов');
             }
+
+            console.log(list)
+            const ul = document.getElementById('chats-list');
+            ul.innerHTML = '';
+            //for (let element of list.rooms) {
+            //    console.log(element);
+            //}
+            list.rooms.forEach(chat => {
+                console.log(chat)
+                const li = document.createElement('li');
+                li.innerText = chat.name;
+                li.addEventListener('click', () => selectChat(chat.id, chat.name));
+                ul.appendChild(li);
+            });
         }
 
         // SELECT CHAT

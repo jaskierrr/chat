@@ -17,14 +17,16 @@ from asyncpg.exceptions import UniqueViolationError
 from typing import Annotated
 
 from fastapi import Depends
+from http import HTTPStatus
 
 
 from backend.adapter.db.rooms_repo import RoomsRepo
 from backend.adapter.db.user_repo import UserRepo
 from backend.auth import auth
 from backend.config import config
+from backend.entrypoint.schemas.response_schemas import RoomsListSchema
 from backend.entrypoint.schemas.ws_schemas import WSMessage
-from backend.entrypoint.schemas.request_schemas import UserLogin
+from backend.entrypoint.schemas.request_schemas import TargetUserId, UserLogin
 from logging import getLevelName, basicConfig, getLogger
 
 
@@ -97,6 +99,7 @@ async def provide_register(user: UserLogin, request: Request):
 
     return response
 
+
 @m_router.post("/token")
 async def validate_token(request: Request):
     cookies = request.headers.get("cookie").split(";")
@@ -106,15 +109,15 @@ async def validate_token(request: Request):
 
     # TODO: переделать, писать такой try/except неправильно
     try:
-        auth.decodeJWT(token)
-        return Response(status_code=200)
+        user_id = {"id": str(auth.decodeJWT(token))}
+        print("token", user_id)
+        return JSONResponse(content=user_id, status_code=200)
     except Exception:
         return Response(status_code=404)
 
 
-
 @m_router.post("/login")
-async def provide_login(user_data: UserLogin, request: Request):
+async def provide_login(user_data: UserLogin):
     # TODO сделать запрос в бд и проверить юзера
     if True:
         # print(user.username)
@@ -131,28 +134,37 @@ async def provide_login(user_data: UserLogin, request: Request):
             )
             return response
 
-        token = auth.encodeJWT(user_data)
-        # logger.info("\ntoken", token)
-        res = {"login": user.login, "id": str(user.id)}
-        print(res)
-        response = JSONResponse(content=res, status_code=200)
+        token = auth.encodeJWT(user)
+        logger.info("\ntoken", token)
+        user_id = {"id": str(user.id)}
+        print("login", user_id)
+        response = JSONResponse(content=user_id, status_code=200)
         response.set_cookie(key="token", value=token)
         # response.headers["location"] = "/chat"
 
     return response
 
 
-@m_router.get("/rooms")
-async def get(request: Request):
+@m_router.post(
+    "/rooms",
+    responses={
+        HTTPStatus.NOT_FOUND: {"model": str},
+        HTTPStatus.OK: {"model": RoomsListSchema},
+    },
+)
+async def get(target_user_id: TargetUserId) -> RoomsListSchema:
     room_repo: RoomsRepo = RoomsRepo()
-    target_user_id = request.body()
+    # target_user_id = request.body()
+    print(target_user_id.id)
     try:
-        rooms = await room_repo.get(target_user_id)
+        rooms = await room_repo.get(target_user_id.id)
+        rooms = RoomsListSchema.unpack_rooms(rooms)
     except Exception as err:
         logger.info("\n\nCant get rooms for user", err)
         return Response(status_code=404)
 
-    return JSONResponse(content=rooms, status_code=200)
+    return rooms
+
 
 async def get_cookie_or_token(
     websocket: WebSocket,

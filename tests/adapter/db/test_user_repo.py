@@ -4,8 +4,8 @@ from backend.const import POSTGRES_CONN
 
 
 @pytest.fixture()
-def fake_main_container(monkeypatch, db_session):
-    fake_main_cont = {POSTGRES_CONN: db_session}
+def fake_main_container(monkeypatch, async_db_connection):
+    fake_main_cont = {POSTGRES_CONN: async_db_connection}
     monkeypatch.setattr('backend.adapter.db.user_repo.main_container', fake_main_cont)
 
 

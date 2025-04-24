@@ -59,21 +59,22 @@ def db_engine(sa_engine_db: Any) -> Any:
             tables = ','.join(str(table) for table in Base.metadata.sorted_tables)
             connection.execute(sa.text(f'TRUNCATE TABLE {tables}'))
 
-
 @pytest.fixture
-async def db_session(sa_engine_db: Any, config: Any) -> Any:
+async def async_db_connection(sa_engine_db: Any, config: Any) -> Any:
     dsn = URL(str(sa_engine_db.url)).with_password(sa_engine_db.url.password).with_scheme('postgresql+asyncpg')
     try:
         engine = create_async_engine(str(dsn))
         connection = async_sessionmaker(engine, expire_on_commit=False)
-        # yield connection
-        async with connection() as session:
-            yield session
+        yield connection
     finally:
         with sa_engine_db.connect() as connection:
             tables = ','.join(str(table) for table in Base.metadata.sorted_tables)
             connection.execute(sa.text(f'TRUNCATE TABLE {tables}'))
 
+@pytest.fixture
+async def db_session(async_db_connection: Any, config: Any) -> Any:
+    async with async_db_connection() as session:
+        yield session
 
 @pytest.fixture
 def redis_client_sync(config):

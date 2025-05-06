@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.adapter.db.postgres import User
 from backend.const import POSTGRES_CONN
 from backend.container import main_container
-from backend.entrypoint.schemas.request_schemas import UserLogin
+from backend.entrypoints.schemas.request_schemas import UserLogin
 
 
 class UserRepo:
@@ -23,7 +23,7 @@ class UserRepo:
         async with self.session() as session:
             sql = select(User).where(User.login == login)
             result = await session.execute(sql)
-            await session.commit()
+            # await session.commit()
 
         return result.scalar_one()
 

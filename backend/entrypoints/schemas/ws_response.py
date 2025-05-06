@@ -10,13 +10,15 @@ class RoomSchema(BaseModel):
     id: UUID
     name: str
 
-class RoomsListSchema(BaseModel):
+
+class WSMessageBodyGetRooms(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     rooms: list[RoomSchema]
 
     @classmethod
-    def unpack_rooms(cls, rooms_db: list[Room]) -> "RoomsListSchema":
-        return RoomsListSchema(rooms=[RoomSchema.model_validate(room) for room in rooms_db])
-
+    def unpack_rooms(cls, rooms_db: list[Room]) -> "WSMessageBodyGetRooms":
+        return WSMessageBodyGetRooms(
+            rooms=[RoomSchema.model_validate(room) for room in rooms_db]
+        )
 

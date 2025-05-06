@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.entrypoint.api_v1.mem import m_router
+from backend.entrypoints.api_v1.mem import m_router
 
 main_router = APIRouter()
 

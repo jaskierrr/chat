@@ -1,11 +1,10 @@
+import jwt
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
-import jwt
 from jwt.exceptions import InvalidTokenError
 from backend.adapter.db.postgres import User
 from backend.adapter.db.user_repo import UserRepo
 from backend.config import config
-
 
 
 async def authenticate_user(db: UserRepo, user: User):
@@ -19,7 +18,6 @@ async def authenticate_user(db: UserRepo, user: User):
 def encodeJWT(user: User):
     if config.auth.ttl:
         exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
-        # exp = datetime.now(tz=timezone.utc) + timedelta(seconds=100000)
         pass
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
@@ -57,4 +55,4 @@ def decodeJWT(token: str):
     # return user
 
     print("Token correct", token)
-    return payload["user_id"]
+    return payload

@@ -5,7 +5,7 @@ from backend.adapter.cache.connection import close_redis_pool, create_redis_pool
 from backend.config import config
 
 from adapter.db.connection import create_session, close_session
-from backend.entrypoint.api_v1.router import main_router
+from backend.entrypoints.api_v1.router import main_router
 
 
 @asynccontextmanager

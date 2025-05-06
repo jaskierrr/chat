@@ -1,11 +1,14 @@
 from datetime import datetime
+from typing import Generic, TypeVar
 from pydantic import BaseModel
 from enum import StrEnum
+
 
 
 class WSMessageType(StrEnum):
     command = "command"
     message = "message"
+    response = "response"
 
 
 class WSCommandType(StrEnum):
@@ -13,18 +16,17 @@ class WSCommandType(StrEnum):
     get_room = "/get_room"
     # post_notificathion
 
-
-class WSMessageBody(BaseModel):
-    text: str | None = None
-
+class WSMessageBodyUserId(BaseModel):
+    id: str
 
 class WSMessageHead(BaseModel):
     type: WSMessageType
     command: WSCommandType | None = None
     timestamp: datetime
-    token: str
+    token: str | None = None
 
+WSMessageBodyType = TypeVar("WSMessageBodyType")
 
-class WSMessage(BaseModel):
+class WSMessage(BaseModel, Generic[WSMessageBodyType]):
     head: WSMessageHead | None = None
-    body: WSMessageBody | None = None
+    body: WSMessageBodyType | None = None

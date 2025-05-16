@@ -1,41 +1,34 @@
-from datetime import UTC, datetime, timezone
 import json
+from logging import basicConfig, getLevelName, getLogger
+from typing import Annotated, Any
+
+from asyncpg.exceptions import UniqueViolationError
 from fastapi import (
     APIRouter,
-    Cookie,
+    Depends,
     Query,
+    Request,
     Response,
     WebSocket,
     WebSocketDisconnect,
-    Request,
     WebSocketException,
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.exc import IntegrityError, NoResultFound
-from asyncpg.exceptions import UniqueViolationError
-from typing import Annotated, Any
-from fastapi import Depends
-from sqlalchemy.sql.functions import user
-from backend.adapter.db.rooms_repo import RoomsRepo
+
 from backend.adapter.db.user_repo import UserRepo
 from backend.auth import auth
 from backend.config import config
-from backend.entrypoints.schemas.ws_response import WSMessageBodyGetRooms
+from backend.entrypoints.schemas.request_schemas import UserLogin
 from backend.entrypoints.schemas.ws_schemas import (
     WSCommandType,
     WSMessage,
-    WSMessageBodyUserId,
-    WSMessageHead,
-    WSMessageType,
 )
-from backend.entrypoints.schemas.request_schemas import UserLogin
-from logging import getLevelName, basicConfig, getLogger
-
 from backend.services.auth import AuthService
 from backend.services.login import LoginService
-
+from backend.services.ws import WSService
 
 print(getLevelName(config.log_level))
 basicConfig(format="%(levelname)s: %(message)s", level=getLevelName(config.log_level))
@@ -45,10 +38,10 @@ m_router = APIRouter()
 
 auth_service = AuthService()
 login_service = LoginService()
+ws_servise = WSService()
 
 # templates = Jinja2Templates(directory="backend/templates")
-templates = Jinja2Templates(directory="frontend")
-
+templates = Jinja2Templates(directory="templates")
 
 # Менеджер подключений для работы с WebSocket
 class ConnectionManager:
@@ -72,32 +65,43 @@ class ConnectionManager:
     async def router(self, user_id: str, message: dict[str, Any]):
         match message["head"]["command"]:
             case WSCommandType.get_rooms_list.value:
-                # TODO ПЕРЕДЕЛАТЬ НА СЕРВИСЫ
-                message = WSMessage[WSMessageBodyUserId].model_validate(message)
-                room_repo: RoomsRepo = RoomsRepo()
-                print(f"{message.body.id=}")
-                try:
-                    rooms = await room_repo.get(message.body.id)
-                    body = WSMessageBodyGetRooms.unpack_rooms(rooms)
 
-                    head = WSMessageHead(
-                        type=WSMessageType.response.value,
-                        timestamp=datetime.now(tz=timezone.utc),
-                    )
+                response_msg = await ws_servise.get_rooms_list(user_id, message)
 
-                    response_msg = WSMessage(head=head, body=body)
-                    print(response_msg)
-                    await self.send_message(user_id, response_msg.model_dump_json())
-                except Exception as err:
-                    logger.info("\n\nCant get rooms for user", err)
-                    return Response(status_code=404)
-
-                # ЭТО ОТВЕТ ДЛЯ FASTAPI, ПЕРЕДЕЛАТЬ НА JSON ДЛЯ WS (ТИПА head, body)
-                return rooms
-
+        res = response_msg.model_dump_json()
+        print(res)
+        await self.send_message(user_id, res)
+        await self.send_message(user_id, 'msg')
+        logger.info("msg sent %s, %s", self.active_connections.keys(), user_id)
 
 manager = ConnectionManager()
 
+
+async def get_token(
+    websocket: WebSocket,
+    token: Annotated[str | None, Query()] = None,
+):
+    if token is None:
+        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
+    return token
+
+
+@m_router.websocket("/ws")
+async def websocket_endpoint(
+    websocket: WebSocket, cookie_or_token: Annotated[str, Depends(get_token)]
+):
+    user_id = auth.decodeJWT(cookie_or_token)["user_id"]
+    await manager.connect(websocket, user_id)
+
+    try:
+        # сменить на async
+        while True:
+            data = await websocket.receive_text()
+            data = json.loads(data)
+            await manager.router(user_id, data)
+    except WebSocketDisconnect:
+        user_id = auth.decodeJWT(cookie_or_token)["user_id"]
+        manager.disconnect(user_id)
 
 @m_router.get("/", response_class=HTMLResponse)
 async def send_login_page(request: Request):
@@ -134,7 +138,12 @@ async def provide_register(user: UserLogin, request: Request):
 
 @m_router.post("/token")
 async def validate_token(request: Request):
-    return auth_service.validate_token(request)
+    token_payload = auth_service.validate_token(request)
+    try:
+        user_id = {"id": token_payload['user_id']}
+        return JSONResponse(content=user_id, status_code=200)
+    except Exception:
+        return Response(status_code=404)
 
 
 @m_router.post("/login")
@@ -179,30 +188,3 @@ async def provide_login(user_data: UserLogin, user_repo: UserRepo = Depends(User
 #
 #     return rooms
 
-
-async def get_cookie_or_token(
-    websocket: WebSocket,
-    session: Annotated[str | None, Cookie()] = None,
-    token: Annotated[str | None, Query()] = None,
-):
-    if session is None and token is None:
-        raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
-    return session or token
-
-
-@m_router.websocket("/ws")
-async def websocket_endpoint(
-    websocket: WebSocket, cookie_or_token: Annotated[str, Depends(get_cookie_or_token)]
-):
-    user_id = auth.decodeJWT(cookie_or_token)["user_id"]
-    await manager.connect(websocket, user_id)
-
-    try:
-        # сменить на async
-        while True:
-            data = await websocket.receive_text()
-            data = json.loads(data)
-            await manager.router(user_id, data)
-    except WebSocketDisconnect:
-        user_id = auth.decodeJWT(cookie_or_token)["user_id"]
-        manager.disconnect(user_id)

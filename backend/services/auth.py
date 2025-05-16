@@ -1,23 +1,23 @@
-from fastapi import Response
-from fastapi.responses import JSONResponse
-
+from typing import Dict
 from backend.auth.auth import decodeJWT
 
 
+class JWTNotFound(Exception):
+    pass
+
+
 class AuthService:
-    def validate_token(self, request):
+    def validate_token(self, request) -> Dict[str, str]:
         cookies = request.headers.get("cookie")
+        print(f'{cookies=}')
+        token = ''
         if cookies:
-            for cookie in cookies:
+            cookie_list = cookies.split(';')
+            for cookie in cookie_list:
                 if "token=" in cookie:
                     token = cookie.split("=")[1]
-                else:
-                    return Response(status_code=404)
 
-        # TODO: переделать, писать такой try/except неправильно
-        try:
-            user_id = {"id": decodeJWT(token)['user_id']}
-            print("token", user_id)
-            return JSONResponse(content=user_id, status_code=200)
-        except Exception:
-            return Response(status_code=404)
+            if not token:
+                raise JWTNotFound("JWT not found in cookies from request")
+
+        return decodeJWT(token)

@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.adapter.db.postgres import Room, User, user_room
+from backend.adapter.db.postgres import Room, user_room
 from backend.const import POSTGRES_CONN
 from backend.container import main_container
 
@@ -18,7 +18,7 @@ class RoomsRepo:
     #
     #     return user
 
-    async def get(self, target_user_id) -> User:
+    async def get(self, target_user_id) -> list[Room]:
         async with self.session() as session:
             sql = select(Room).join(user_room).where(user_room.c.user_id == target_user_id)
             result = (await session.execute(sql)).scalars().all()

@@ -1,3 +1,4 @@
+from typing import Dict
 import jwt
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
@@ -29,7 +30,7 @@ def encodeJWT(user: User):
     return jwt.encode(payload, config.auth.secret, "HS512")
 
 
-def decodeJWT(token: str):
+def decodeJWT(token: str) -> Dict[str, str]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",

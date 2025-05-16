@@ -1,6 +1,5 @@
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
-
 from backend.adapter.db.postgres import Room
 
 

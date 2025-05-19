@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from enum import StrEnum
 
 
-
 class WSMessageType(StrEnum):
     command = "command"
     message = "message"
@@ -14,10 +13,22 @@ class WSMessageType(StrEnum):
 class WSCommandType(StrEnum):
     get_rooms_list = "/get_rooms_list"
     get_room = "/get_room"
+    send_message = "/send_message"
     # post_notificathion
+
 
 class WSMessageBodyUserId(BaseModel):
     id: str
+
+
+class WSMessageBodyRoomId(BaseModel):
+    id: str
+
+
+class WSMessageBodyRoomIdText(BaseModel):
+    chat_id: str
+    text: str
+
 
 class WSMessageHead(BaseModel):
     type: WSMessageType
@@ -25,7 +36,9 @@ class WSMessageHead(BaseModel):
     timestamp: datetime
     token: str | None = None
 
+
 WSMessageBodyType = TypeVar("WSMessageBodyType")
+
 
 class WSMessage(BaseModel, Generic[WSMessageBodyType]):
     head: WSMessageHead | None = None

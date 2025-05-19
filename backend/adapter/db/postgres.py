@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped
+from sqlalchemy.orm import DeclarativeBase, mapped_column, Mapped, relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy import (
     UUID,
@@ -56,13 +56,10 @@ class User(Base):
     @password.setter
     def password(self, new_pass):
         """Salt/Hash and save the user's new password."""
-        # loop = asyncio.get_event_loop()
-
-        # new_password_hash = await loop.run_in_executor(
-        #     None, compute_new_password_hash, new_pass, config.config.password.salt
-        # )
         new_password_hash = compute_new_password_hash(new_pass, config.password.salt)
         self._password = new_password_hash
+
+    messages: Mapped[list["Message"]] = relationship(back_populates="user")
 
 
 class Room(Base):
@@ -77,19 +74,33 @@ class Room(Base):
     )
     name: Mapped[str] = mapped_column(String(100))
 
+    messages: Mapped[list["Message"]] = relationship(back_populates="room")
 
 class Message(Base):
     __tablename__ = "messages"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        comment="Room ID",
+        comment="Message ID",
         primary_key=True,
         default=uuid.uuid4,
         unique=True,
     )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        comment="User ID",
+    )
+    room_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("rooms.id"),
+        comment="Room ID",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     body: Mapped[str] = mapped_column(String(500), nullable=False)
+
+    room: Mapped[Room] = relationship(back_populates="messages")
+    user: Mapped[User] = relationship(back_populates="messages")
 
 
 #

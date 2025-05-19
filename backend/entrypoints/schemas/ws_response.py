@@ -10,14 +10,16 @@ class RoomSchema(BaseModel):
     name: str
 
 
-class WSMessageBodyGetRooms(BaseModel):
+class WSMessageBodyGetRoomsList(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     rooms: list[RoomSchema]
 
     @classmethod
-    def unpack_rooms(cls, rooms_db: list[Room]) -> "WSMessageBodyGetRooms":
-        return WSMessageBodyGetRooms(
+    def unpack_rooms(cls, rooms_db: list[Room]) -> "WSMessageBodyGetRoomsList":
+        return WSMessageBodyGetRoomsList(
             rooms=[RoomSchema.model_validate(room) for room in rooms_db]
         )
 
+class WSMessageBodyGetRoom(BaseModel):
+    pass

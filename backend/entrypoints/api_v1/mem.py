@@ -63,15 +63,20 @@ class ConnectionManager:
         await self.active_connections[user_id].send_text(message)
 
     async def router(self, user_id: str, message: dict[str, Any]):
-        match message["head"]["command"]:
-            case WSCommandType.get_rooms_list.value:
-
-                response_msg = await ws_servise.get_rooms_list(user_id, message)
+        try:
+            match message["head"]["command"]:
+                case WSCommandType.get_rooms_list.value:
+                    response_msg = await ws_servise.get_rooms_list(user_id, message)
+                case WSCommandType.get_room.value:
+                    response_msg = await ws_servise.get_room(message)
+                case WSCommandType.send_message.value:
+                    response_msg = await ws_servise.send_message(user_id, message)
+        except Exception as e:
+            logger.error(f"Cant provide WS respone: {e}")
+            return
 
         res = response_msg.model_dump_json()
-        print(res)
         await self.send_message(user_id, res)
-        await self.send_message(user_id, 'msg')
         logger.info("msg sent %s, %s", self.active_connections.keys(), user_id)
 
 manager = ConnectionManager()

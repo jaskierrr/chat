@@ -2,9 +2,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
-from backend.adapter.db.postgres import Message, Room, User, user_room
+from backend.adapter.db.postgres import Message, Room, user_room
 from backend.const import POSTGRES_CONN
 from backend.container import main_container
+from backend.entrypoints.schemas.request_schemas import SendMessage
 
 
 class RoomsRepo:
@@ -38,6 +39,16 @@ class RoomsRepo:
             await session.commit()
 
         return result
+    # async def send_message(self, user_id, room_id, body):
+    async def send_message(self, message: SendMessage):
+        async with self.session() as session:
+            # sql = insert(Message).values(user_id=user_id, room_id=room_id, body=body)
+            # result = (await session.execute(sql)).scalars().all()
+            new_message = Message(**message.model_dump())
+            session.add(new_message)
+            await session.commit()
+
+        return new_message
 
 
     def _get_session(self):

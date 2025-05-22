@@ -3,6 +3,13 @@ from pydantic import BaseModel, ConfigDict
 from backend.adapter.db.postgres import Room
 
 
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    username: str
+
+
 class RoomSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -20,6 +27,7 @@ class WSMessageBodyGetRoomsList(BaseModel):
         return WSMessageBodyGetRoomsList(
             rooms=[RoomSchema.model_validate(room) for room in rooms_db]
         )
+
 
 class WSMessageBodyGetRoom(BaseModel):
     pass

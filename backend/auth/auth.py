@@ -11,7 +11,7 @@ from backend.config import config
 async def authenticate_user(db: UserRepo, user: User):
     # запрос в базу с проверкой пароля
 
-    user = await db.get(user.login)
+    user = await db.get(user.username)
 
     return user
 
@@ -25,7 +25,7 @@ def encodeJWT(user: User):
 
     print(user.id)
 
-    payload = {"login": user.login, "user_id": str(user.id), "exp": exp}
+    payload = {"username": user.username, "user_id": str(user.id), "exp": exp}
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 
@@ -43,7 +43,7 @@ def decodeJWT(token: str) -> Dict[str, str]:
     )
     try:
         payload = jwt.decode(token, config.auth.secret, "HS512")
-        if payload.get("login") is None or payload.get("user_id") is None:
+        if payload.get("username") is None or payload.get("user_id") is None:
             raise credentials_exception_for_sub
     except InvalidTokenError:
         raise credentials_exception

@@ -68,36 +68,27 @@ function checkWSCommand(msg) {
 }
 
 // LOGIN
-document.getElementById('login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const login = document.getElementById('login').value;
-    const pass = document.getElementById('password').value;
+//document.getElementById('login-form').addEventListener('submit', async e => {
+async function Login(event) {
+    event.preventDefault();
+    const form = document.getElementById('login-form');
+    const formData = new FormData(form);
+    const username = formData.get('username');
+    const password = formData.get('password');
     try {
         const res = await fetch('/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ login: login, password: pass })
+            body: JSON.stringify({ login: username, password: password })
         });
 
         if (res.ok) {
-            //console.log(res.json())
             user = await res.json()
-            //result
-            //    .then(res => {
-            //        window.user = res;           // присваиваем значение перемису
-            //        console.log(user); // теперь можно работать с userData
-            //    })
-            //    .catch(error => {
-            //        console.error(error);
-            //    });
             token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1] || '';
             console.log(token);
             showPage('chats');
             openWS(token);
             getRoomsList();
-
-            //loadRooms();
-
 
         } else {
             const data = await res.json();
@@ -106,7 +97,8 @@ document.getElementById('login-form').addEventListener('submit', async e => {
     } catch (err) {
         document.getElementById('login-error').innerText = 'Сервер недоступен: ' + err;
     }
-});
+}
+//});
 
 //socket.onmessage = function(event) {
 //    console.log('START onmessage')
@@ -138,7 +130,7 @@ function sendMessage(message_text) {
     // отправить json с
     console.log('START sendMessage')
     if (currentChatId) {
-        message = prepareJson('command', '/send_message', { chat_id: currentChatId, text: message_text })
+        message = prepareJson('command', '/send_message', { room_id: currentChatId, text: message_text })
         console.log("REQUEST", message)
         socket.send(message);
     }

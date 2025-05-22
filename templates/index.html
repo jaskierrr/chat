@@ -142,8 +142,9 @@
             <div id="page-login" class="page active">
                 <h2>Войти</h2>
                 <form id="login-form">
-                    <input type="text" id="login" placeholder="Имя пользователя" required>
-                    <input type="password" id="password" placeholder="Пароль" required>
+                    <input type="text" id="username" name="username" placeholder="Имя пользователя" required>
+                    <input type="password" id="password" name="password" placeholder="Пароль" required>
+                    <!--<button onclick="Login(event)" type="submit">Войти</button>-->
                     <button type="submit">Войти</button>
                 </form>
                 <div id="login-error" class="error"></div>
@@ -167,7 +168,8 @@
             </div>
         </div>
 
-        <script src="{{ url_for('static', path='js/script.js') }}"></script>
+        <!--<script src="{{ url_for('static', path='js/script.js') }}"></script>-->
+        <script type="module" src="{{ url_for('static', path='js/index.js') }}"></script>
     </body>
 
 </html>

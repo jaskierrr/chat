@@ -26,7 +26,7 @@ class WSMessageBodyRoomId(BaseModel):
 
 
 class WSMessageBodyRoomIdText(BaseModel):
-    chat_id: str
+    room_id: str
     text: str
 
 

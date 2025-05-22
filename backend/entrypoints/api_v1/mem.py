@@ -43,6 +43,7 @@ ws_servise = WSService()
 # templates = Jinja2Templates(directory="backend/templates")
 templates = Jinja2Templates(directory="templates")
 
+
 # Менеджер подключений для работы с WebSocket
 class ConnectionManager:
     def __init__(self):
@@ -72,12 +73,13 @@ class ConnectionManager:
                 case WSCommandType.send_message.value:
                     response_msg = await ws_servise.send_message(user_id, message)
         except Exception as e:
-            logger.error(f"Cant provide WS respone: {e}")
+            logger.exception(f"Cant provide WS respone: {e}")
             return
 
         res = response_msg.model_dump_json()
         await self.send_message(user_id, res)
         logger.info("msg sent %s, %s", self.active_connections.keys(), user_id)
+
 
 manager = ConnectionManager()
 
@@ -86,6 +88,7 @@ async def get_token(
     websocket: WebSocket,
     token: Annotated[str | None, Query()] = None,
 ):
+    # print('lol')
     if token is None:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
     return token
@@ -95,6 +98,7 @@ async def get_token(
 async def websocket_endpoint(
     websocket: WebSocket, cookie_or_token: Annotated[str, Depends(get_token)]
 ):
+    # print(f'{cookie_or_token=}')
     user_id = auth.decodeJWT(cookie_or_token)["user_id"]
     await manager.connect(websocket, user_id)
 
@@ -108,9 +112,51 @@ async def websocket_endpoint(
         user_id = auth.decodeJWT(cookie_or_token)["user_id"]
         manager.disconnect(user_id)
 
+
 @m_router.get("/", response_class=HTMLResponse)
 async def send_login_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@m_router.post("/token")
+async def validate_token(request: Request):
+    token_payload = auth_service.validate_token(request)
+    try:
+        user_id = {"id": token_payload["user_id"]}
+        return JSONResponse(content=user_id, status_code=200)
+    except Exception:
+        return Response(status_code=404)
+
+
+@m_router.post("/login")
+async def provide_login(user_data: UserLogin, user_repo: UserRepo = Depends(UserRepo)):
+    try:
+        user = await login_service.login_user(user_data, user_repo)
+    except NoResultFound as err:
+        logger.error(f"Error occured: {err}")
+
+        response = JSONResponse(
+            content={"error": f"user not found: {err}"}, status_code=404
+        )
+        return response
+
+    token = auth.encodeJWT(user)
+    print("\ntoken", token)
+
+    # user_id = {"id": str(user.id)}
+    # res = UserResponse(**user.dict(exclude={'password'}))
+    # data = user.__dict__.copy()
+    # data.pop('_sa_instance_state', None)
+    # data.pop('_password', None)
+    # res = UserResponse(**data)
+    res = {'username': str(user.username), 'id': str(user.id)}
+
+    print("user", res)
+
+    response = JSONResponse(content=res, status_code=200)
+    response.set_cookie(key="token", value=token)
+
+    return response
 
 
 @m_router.get("/reg", response_class=HTMLResponse)
@@ -139,57 +185,3 @@ async def provide_register(user: UserLogin, request: Request):
     # response.headers["location"] = "/chat"
 
     return response
-
-
-@m_router.post("/token")
-async def validate_token(request: Request):
-    token_payload = auth_service.validate_token(request)
-    try:
-        user_id = {"id": token_payload['user_id']}
-        return JSONResponse(content=user_id, status_code=200)
-    except Exception:
-        return Response(status_code=404)
-
-
-@m_router.post("/login")
-async def provide_login(user_data: UserLogin, user_repo: UserRepo = Depends(UserRepo)):
-    try:
-        user = await login_service.login_user(user_data, user_repo)
-    except NoResultFound as err:
-        logger.error(f"Error occured: {err}")
-
-        response = JSONResponse(
-            content={"error": f"user not found: {err}"}, status_code=404
-        )
-        return response
-
-    token = auth.encodeJWT(user)
-    print("\ntoken", token)
-    user_id = {"id": str(user.id)}
-    print("login", user_id)
-    response = JSONResponse(content=user_id, status_code=200)
-    response.set_cookie(key="token", value=token)
-
-    return response
-
-
-# @m_router.post(
-#     "/rooms",
-#     responses={
-#         HTTPStatus.NOT_FOUND: {"model": str},
-#         HTTPStatus.OK: {"model": RoomsListSchema},
-#     },
-# )
-# async def get(target_user_id: TargetUserId) -> RoomsListSchema:
-#     room_repo: RoomsRepo = RoomsRepo()
-#     # target_user_id = request.body()
-#     print(f"{target_user_id.id=}")
-#     try:
-#         rooms = await room_repo.get(target_user_id.id)
-#         rooms = RoomsListSchema.unpack_rooms(rooms)
-#     except Exception as err:
-#         logger.info("\n\nCant get rooms for user", err)
-#         return Response(status_code=404)
-#
-#     return rooms
-

@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from backend.adapter.db.rooms_repo import RoomsRepo
+from backend.entrypoints.schemas.request_schemas import SendMessage
 from backend.entrypoints.schemas.ws_response import WSMessageBodyGetRoomsList
 from backend.entrypoints.schemas.ws_schemas import (
     WSMessage,
@@ -12,6 +13,9 @@ from backend.entrypoints.schemas.ws_schemas import (
 
 
 class CantGetRooms(Exception):
+    pass
+
+class CantWriteMsg(Exception):
     pass
 
 
@@ -43,6 +47,7 @@ class WSService:
         try:
             if room := await room_repo.get_messages_by_room_id(message.body.id):
                 print("in service", room)
+                return room
             else:
                 raise CantGetRooms("\n\nCant get messages by room id")
         except Exception as err:
@@ -53,12 +58,23 @@ class WSService:
         message = WSMessage[WSMessageBodyRoomIdText].model_validate(message_data)
         room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
+        message_data = SendMessage(user_id=user_id, room_id=message.body.room_id, created_at=datetime.now(), body=message.body.text)
         try:
-            if room := await room_repo.send_message(
-                user_id, message.body.room_id, message.body.text
+            if msg := await room_repo.send_message(
+                # user_id, message.body.room_id, message.body.text
+                message_data
             ):
-                print("in service", room)
+                print("in service", msg)
+
+                head = WSMessageHead(
+                    type=WSMessageType.response,
+                    command=message.head.command,
+                    timestamp=datetime.now(tz=timezone.utc),
+                )
+
+                res = WSMessage(head=head, body=None)
             else:
-                raise CantGetRooms("\n\nCant write message in DB")
+                raise CantWriteMsg("\n\nCant write message in DB", msg)
         except Exception as err:
-            raise CantGetRooms("\n\nCant write message in DB", err)
+            raise CantWriteMsg("\n\nCant write message in DB", err)
+        return res

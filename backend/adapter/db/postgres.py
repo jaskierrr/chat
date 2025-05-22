@@ -45,7 +45,7 @@ class User(Base):
         default=uuid.uuid4,
         unique=True,
     )
-    login: Mapped[str] = mapped_column(String(50), unique=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True)
     _password: Mapped[bytes] = mapped_column(LargeBinary, name="password")
 
     @hybrid_property
@@ -96,7 +96,7 @@ class Message(Base):
         ForeignKey("rooms.id"),
         comment="Room ID",
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, nullable=False)
     body: Mapped[str] = mapped_column(String(500), nullable=False)
 
     room: Mapped[Room] = relationship(back_populates="messages")

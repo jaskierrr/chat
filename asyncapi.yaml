@@ -1,0 +1,279 @@
+asyncapi: 3.0.0
+info:
+  title: Chat WebSocket API
+  version: 1.0.0
+  description: |
+    AsyncAPI спецификация WebSocket сервера для чата. Определяет две команды:
+    - /get_room: получение информации об одной комнате
+    - /get_rooms_list: получение списка комнат
+servers:
+  chatServer:
+    host: chat.example.com
+    pathname: /ws
+    protocol: wss
+    description: WebSocket сервер чата
+    security:
+      - $ref: '#/components/securitySchemes/bearerAuth'
+channels:
+  /get_room:
+    address: /get_room
+    messages:
+      getRoomCommand.message.0:
+        $ref: '#/components/messages/GetRoomRequest'
+      getRoomResponse.message.0:
+        $ref: '#/components/messages/GetRoomResponse'
+    description: Запрос информации об одной комнате
+  /get_rooms_list:
+    address: /get_rooms_list
+    messages:
+      getRoomsListCommand.message.0:
+        $ref: '#/components/messages/GetRoomsListRequest'
+      getRoomsListResponse.message.0:
+        $ref: '#/components/messages/GetRoomsListResponse'
+    description: Запрос списка доступных комнат
+  /send_message:
+    address: /send_message
+    messages:
+      sendMessage.message.0:
+        $ref: '#/components/messages/SendMessage'
+    description: Отправка сообщения в чате
+
+operations:
+  getRoomCommand:
+    action: receive
+    channel:
+      $ref: '#/channels/~1get_room'
+    summary: Клиент отправляет команду /get_room
+    messages:
+      - $ref: '#/channels/~1get_room/messages/getRoomCommand.message.0'
+  getRoomResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1get_room'
+    summary: Сервер отвечает событием get_room_response
+    messages:
+      - $ref: '#/channels/~1get_room/messages/getRoomResponse.message.0'
+  getRoomsListCommand:
+    action: receive
+    channel:
+      $ref: '#/channels/~1get_rooms_list'
+    summary: Клиент отправляет команду /get_rooms_list
+    messages:
+      - $ref: '#/channels/~1get_rooms_list/messages/getRoomsListCommand.message.0'
+  getRoomsListResponse:
+    action: send
+    channel:
+      $ref: '#/channels/~1get_rooms_list'
+    summary: Сервер отвечает событием get_rooms_list_response
+    messages:
+      - $ref: '#/channels/~1get_rooms_list/messages/getRoomsListResponse.message.0'
+  sendMessage:
+    action: send
+    channel:
+      $ref: '#/channels/~1send_message'
+    summary: Клиент отправляет сообщение в чат
+    messages:
+      - $ref: '#/channels/~1send_message/messages/sendMessage.message.0'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  messages:
+    GetRoomsListRequest:
+      name: GetRoomsListRequest
+      title: Запрос /get_rooms_list
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetRoomsListRequest'
+    GetRoomsListResponse:
+      name: GetRoomsListResponse
+      title: Ответ /get_rooms_list
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetRoomsListResponse'
+    GetRoomRequest:
+      name: GetRoomRequest
+      title: Запрос /get_room
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetRoomRequest'
+    GetRoomResponse:
+      name: GetRoomResponse
+      title: Ответ /get_room
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetRoomResponse'
+    SendMessage:
+      name: SendMessage
+      title: Запрос /send_message
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/SendMessage'
+  schemas:
+    Head:
+      type: object
+      properties:
+        event:
+          type: string
+          enum:
+            - /get_room
+            - /get_rooms_list
+            - /send_message
+        timestamp:
+          type: string
+          format: date-time
+        token:
+          type: string
+      required:
+        - event
+        - timestamp
+        - token
+      additionalProperties: false
+    GetRoomRequest:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_room
+        body:
+          type: object
+          properties:
+            room_id:
+              type: string
+              format: uuid
+          required:
+            - room_id
+      required:
+        - head
+        - body
+      additionalProperties: false
+    GetRoomResponse:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_room
+        body:
+          type: object
+          properties:
+            room_id:
+              type: string
+              format: uuid
+            room_name:
+              type: string
+            participants:
+              type: array
+              items:
+                type: string
+          required:
+            - room_id
+            - room_name
+            - participants
+      required:
+        - head
+        - body
+      additionalProperties: false
+    GetRoomsListRequest:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_rooms_list
+        body:
+          type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+          required:
+            - user_id
+      required:
+        - head
+        - body
+      additionalProperties: false
+    GetRoomsListResponse:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_rooms_list
+        body:
+          type: object
+          properties:
+            rooms:
+              type: array
+              items:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                required:
+                  - user_id
+                  - name
+          required:
+            - rooms
+      required:
+        - head
+        - body
+      additionalProperties: false
+    SendMessage:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /send_message
+        body:
+          type: object
+          properties:
+            message:
+              type: object
+              properties:
+                room_id:
+                  type: string
+                  format: uuid
+                user_id:
+                  type: string
+                  format: uuid
+                text:
+                  type: string
+              required:
+                - room_id
+                - user_id
+                - text
+          required:
+            - message
+      required:
+        - head
+        - body
+      additionalProperties: false

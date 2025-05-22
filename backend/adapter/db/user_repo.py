@@ -19,11 +19,11 @@ class UserRepo:
 
         return user
 
-    async def get(self, login) -> User:
+    async def get(self, username) -> User:
         async with self.session() as session:
-            sql = select(User).where(User.login == login)
+            sql = select(User).where(User.username == username)
             result = await session.execute(sql)
-            # await session.commit()
+            await session.commit()
 
         return result.scalar_one()
 

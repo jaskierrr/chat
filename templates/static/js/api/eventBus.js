@@ -10,9 +10,11 @@ export const EventBus = {
   },
 
   publish(message) {
-    const { channel, payload } = message;
-    const hs = this.handlers[channel] || [];
-    hs.forEach(h => h(payload));
+    console.log('in publish func')
+    console.log(message)
+    const { head, body } = message;
+    const hs = this.handlers[head.event] || [];
+    hs.forEach(h => h(body));
   }
 };
 

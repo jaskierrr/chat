@@ -153,17 +153,17 @@ function prepareJson(type, command, body) {
 }
 
 // LOAD ROOMS
-async function loadRooms(chats) {
-    //console.log(chats)
-    const ul = document.getElementById('chats-list');
-    ul.innerHTML = '';
-    chats.body.rooms.forEach(chat => {
-        const li = document.createElement('li');
-        li.innerText = chat.name;
-        li.addEventListener('click', () => selectChat(chat.id, chat.name));
-        ul.appendChild(li);
-    });
-}
+//async function loadRooms(chats) {
+//    //console.log(chats)
+//    const ul = document.getElementById('chats-list');
+//    ul.innerHTML = '';
+//    chats.body.rooms.forEach(chat => {
+//        const li = document.createElement('li');
+//        li.innerText = chat.name;
+//        li.addEventListener('click', () => selectChat(chat.id, chat.name));
+//        ul.appendChild(li);
+//    });
+//}
 
 // SELECT CHAT
 function selectChat(id, name) {

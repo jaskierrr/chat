@@ -39,6 +39,7 @@ class RoomsRepo:
             await session.commit()
 
         return result
+
     # async def send_message(self, user_id, room_id, body):
     async def send_message(self, message: SendMessage):
         async with self.session() as session:

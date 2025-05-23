@@ -3,14 +3,7 @@ from typing import Generic, TypeVar
 from pydantic import BaseModel
 from enum import StrEnum
 
-
-class WSMessageType(StrEnum):
-    command = "command"
-    message = "message"
-    response = "response"
-
-
-class WSCommandType(StrEnum):
+class WSEventType(StrEnum):
     get_rooms_list = "/get_rooms_list"
     get_room = "/get_room"
     send_message = "/send_message"
@@ -31,8 +24,7 @@ class WSMessageBodyRoomIdText(BaseModel):
 
 
 class WSMessageHead(BaseModel):
-    type: WSMessageType
-    command: WSCommandType | None = None
+    event: WSEventType | None = None
     timestamp: datetime
     token: str | None = None
 

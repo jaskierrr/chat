@@ -23,7 +23,7 @@ from backend.auth import auth
 from backend.config import config
 from backend.entrypoints.schemas.request_schemas import UserLogin
 from backend.entrypoints.schemas.ws_schemas import (
-    WSCommandType,
+    WSEventType,
     WSMessage,
 )
 from backend.services.auth import AuthService
@@ -64,13 +64,14 @@ class ConnectionManager:
         await self.active_connections[user_id].send_text(message)
 
     async def router(self, user_id: str, message: dict[str, Any]):
+        print(message)
         try:
-            match message["head"]["command"]:
-                case WSCommandType.get_rooms_list.value:
+            match message["head"]["event"]:
+                case WSEventType.get_rooms_list.value:
                     response_msg = await ws_servise.get_rooms_list(user_id, message)
-                case WSCommandType.get_room.value:
+                case WSEventType.get_room.value:
                     response_msg = await ws_servise.get_room(message)
-                case WSCommandType.send_message.value:
+                case WSEventType.send_message.value:
                     response_msg = await ws_servise.send_message(user_id, message)
         except Exception as e:
             logger.exception(f"Cant provide WS respone: {e}")
@@ -106,6 +107,7 @@ async def websocket_endpoint(
         # сменить на async
         while True:
             data = await websocket.receive_text()
+            print(data)
             data = json.loads(data)
             await manager.router(user_id, data)
     except WebSocketDisconnect:

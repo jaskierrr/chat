@@ -1,3 +1,4 @@
+// Здесь только логика изменения контента на странице
 export const state = {
     currentUserToken: null,
     currentUser: null,
@@ -14,4 +15,16 @@ const pages = {
 export function showPage(page) {
     Object.values(pages).forEach(p => p.classList.remove('active'));
     pages[page].classList.add('active');
+}
+
+export function loadRooms(data) {
+    console.log(data)
+    const ul = document.getElementById('chats-list');
+    ul.innerHTML = '';
+    data.rooms.forEach(chat => {
+        const li = document.createElement('li');
+        li.innerText = chat.name;
+        li.addEventListener('click', () => selectChat(chat.id, chat.name));
+        ul.appendChild(li);
+    });
 }

@@ -8,7 +8,6 @@ from backend.entrypoints.schemas.ws_schemas import (
     WSMessageBodyRoomIdText,
     WSMessageBodyUserId,
     WSMessageHead,
-    WSMessageType,
 )
 
 
@@ -28,8 +27,7 @@ class WSService:
             if rooms := await room_repo.get_rooms_list(message.body.id):
                 body = WSMessageBodyGetRoomsList.unpack_rooms(rooms)
                 head = WSMessageHead(
-                    type=WSMessageType.response,
-                    command=message.head.command,
+                    event=message.head.event,
                     timestamp=datetime.now(tz=timezone.utc),
                 )
                 response_msg = WSMessage(head=head, body=body)
@@ -67,8 +65,7 @@ class WSService:
                 print("in service", msg)
 
                 head = WSMessageHead(
-                    type=WSMessageType.response,
-                    command=message.head.command,
+                    event=message.head.event,
                     timestamp=datetime.now(tz=timezone.utc),
                 )
 

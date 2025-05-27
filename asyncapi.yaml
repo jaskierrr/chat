@@ -14,6 +14,7 @@ servers:
     description: WebSocket сервер чата
     security:
       - $ref: '#/components/securitySchemes/bearerAuth'
+
 channels:
   /get_room:
     address: /get_room
@@ -37,43 +38,87 @@ channels:
       sendMessage.message.0:
         $ref: '#/components/messages/SendMessage'
     description: Отправка сообщения в чате
+  /get_users_list:
+    address: /get_users_list
+    messages:
+      getUsersListRequest.message.0:
+        $ref: '#/components/messages/GetUsersListRequest'
+      getUsersListResponse.message.0:
+        $ref: '#/components/messages/GetUsersListResponse'
+    description: Получение списка пользователей
+  /create_room:
+    address: /create_room
+    messages:
+      createRoomRequest.message.0:
+        $ref: '#/components/messages/CreateRoomRequest'
+      createRoomResponse.message.0:
+        $ref: '#/components/messages/CreateRoomResponse'
+    description: Создание комнаты
 
 operations:
-  getRoomCommand:
-    action: receive
+  GetRoomRequest:
+    action: send
     channel:
       $ref: '#/channels/~1get_room'
     summary: Клиент отправляет команду /get_room
     messages:
       - $ref: '#/channels/~1get_room/messages/getRoomCommand.message.0'
-  getRoomResponse:
-    action: send
+  GetRoomResponse:
+    action: receive
     channel:
       $ref: '#/channels/~1get_room'
     summary: Сервер отвечает событием get_room_response
     messages:
       - $ref: '#/channels/~1get_room/messages/getRoomResponse.message.0'
-  getRoomsListCommand:
-    action: receive
+  GetRoomsListRequest:
+    action: send
     channel:
       $ref: '#/channels/~1get_rooms_list'
     summary: Клиент отправляет команду /get_rooms_list
     messages:
       - $ref: '#/channels/~1get_rooms_list/messages/getRoomsListCommand.message.0'
-  getRoomsListResponse:
-    action: send
+  GetRoomsListResponse:
+    action: receive
     channel:
       $ref: '#/channels/~1get_rooms_list'
     summary: Сервер отвечает событием get_rooms_list_response
     messages:
       - $ref: '#/channels/~1get_rooms_list/messages/getRoomsListResponse.message.0'
-  sendMessage:
+  SendMessage:
     action: send
     channel:
       $ref: '#/channels/~1send_message'
     summary: Клиент отправляет сообщение в чат
     messages:
       - $ref: '#/channels/~1send_message/messages/sendMessage.message.0'
+  GetUsersListRequest:
+    action: send
+    channel:
+      $ref: '#/channels/~1get_users_list'
+    summary: Клиент отправляет id пользователя (чтобы вывести всех доступных пользователей кроме него самого)
+    messages:
+      - $ref: '#/channels/~1get_users_list/messages/getUsersListRequest.message.0'
+  GetUsersListResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/~1get_users_list'
+    summary: Сервер отвечает событием get_users_list_response
+    messages:
+      - $ref: '#/channels/~1get_users_list/messages/getUsersListResponse.message.0'
+  CreateRoomRequest:
+    action: send
+    channel:
+      $ref: '#/channels/~1create_room'
+    summary: Клиент отправляет id двух и более пользователей для создания комнаты между ними
+    messages:
+      - $ref: '#/channels/~1create_room/messages/createRoomRequest.message.0'
+  CreateRoomResponse:
+    action: receive
+    channel:
+      $ref: '#/channels/~1create_room'
+    summary: Сервер отвечает событием create_room_response
+    messages:
+      - $ref: '#/channels/~1create_room/messages/createRoomResponse.message.0'
 
 components:
   securitySchemes:
@@ -82,18 +127,6 @@ components:
       scheme: bearer
       bearerFormat: JWT
   messages:
-    GetRoomsListRequest:
-      name: GetRoomsListRequest
-      title: Запрос /get_rooms_list
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/GetRoomsListRequest'
-    GetRoomsListResponse:
-      name: GetRoomsListResponse
-      title: Ответ /get_rooms_list
-      contentType: application/json
-      payload:
-        $ref: '#/components/schemas/GetRoomsListResponse'
     GetRoomRequest:
       name: GetRoomRequest
       title: Запрос /get_room
@@ -106,12 +139,50 @@ components:
       contentType: application/json
       payload:
         $ref: '#/components/schemas/GetRoomResponse'
+    GetRoomsListRequest:
+      name: GetRoomsListRequest
+      title: Запрос /get_rooms_list
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetRoomsListRequest'
+    GetRoomsListResponse:
+      name: GetRoomsListResponse
+      title: Ответ /get_rooms_list
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetRoomsListResponse'
     SendMessage:
       name: SendMessage
       title: Запрос /send_message
       contentType: application/json
       payload:
         $ref: '#/components/schemas/SendMessage'
+    GetUsersListRequest:
+      name: GetUsersListRequest
+      title: Запрос /get_users_list
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetUsersListRequest'
+    GetUsersListResponse:
+      name: GetUsersListResponse
+      title: Ответ /get_users_list
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GetUsersListResponse'
+    CreateRoomRequest:
+      name: CreateRoomRequest
+      title: Запрос /create_room
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CreateRoomRequest'
+    CreateRoomResponse:
+      name: CreateRoomResponse
+      title: Ответ /create_room
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CreateRoomResponse'
+        
+
   schemas:
     Head:
       type: object
@@ -122,6 +193,7 @@ components:
             - /get_room
             - /get_rooms_list
             - /send_message
+            - /get_users_list
         timestamp:
           type: string
           format: date-time
@@ -132,6 +204,33 @@ components:
         - timestamp
         - token
       additionalProperties: false
+
+    User:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        username:
+          type: string
+      required:
+        - user_id
+        - username
+      additionalProperties: false
+
+    Room:
+      type: object
+      properties:
+        room_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+      required:
+        - room_id
+        - name
+      additionalProperties: false
+
     GetRoomRequest:
       type: object
       properties:
@@ -174,10 +273,25 @@ components:
               format: uuid
             room_name:
               type: string
-            participants:
+            messages:
               type: array
               items:
-                type: string
+                type: object
+                properties:
+                  message_id:
+                    type: string
+                    format: uuid
+                  timestamp:
+                    type: string
+                    format: date-time
+                  text:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+                required:
+                  - message_id
+                  - timestamp
+                  - text
           required:
             - room_id
             - room_name
@@ -226,16 +340,7 @@ components:
             rooms:
               type: array
               items:
-                type: object
-                properties:
-                  user_id:
-                    type: string
-                    format: uuid
-                  name:
-                    type: string
-                required:
-                  - user_id
-                  - name
+                $ref: '#/components/schemas/Room'
           required:
             - rooms
       required:
@@ -256,24 +361,122 @@ components:
         body:
           type: object
           properties:
-            message:
-              type: object
-              properties:
-                room_id:
-                  type: string
-                  format: uuid
-                user_id:
-                  type: string
-                  format: uuid
-                text:
-                  type: string
-              required:
-                - room_id
-                - user_id
-                - text
+            room_id:
+              type: string
+              format: uuid
+            user_id:
+              type: string
+              format: uuid
+            text:
+              type: string
           required:
-            - message
+            - room_id
+            - user_id
+            - text
       required:
         - head
         - body
       additionalProperties: false
+    GetUsersListRequest:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_users_list
+        body:
+          type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+          required:
+            - user_id
+      required:
+        - head
+        - body
+      additionalProperties: false
+    GetUsersListResponse:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_users_list
+        body:
+          type: object
+          properties:
+            users:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  username:
+                    type: string
+                required:
+                  - id
+                  - username
+          required:
+            - users
+      required:
+        - head
+        - body
+      additionalProperties: false
+    CreateRoomRequest:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_users_list
+        body:
+          type: object
+          properties:
+            source_user_id:
+              type: string
+              format: uuid
+              description: ID пользователя, инициирующего создание комнаты
+            target_users_ids:
+              type: array
+              items:
+                  type: string
+                  format: uuid
+      required:
+        - source_user_id
+        - target_users_ids
+
+    CreateRoomResponse:
+      type: object
+      properties:
+        head:
+          allOf:
+            - $ref: '#/components/schemas/Head'
+            - type: object
+              properties:
+                event:
+                  enum:
+                    - /get_users_list
+        body:
+          type: object
+          properties:
+            room_id:
+              type: string
+              format: uuid
+              description: Уникальный идентификатор созданной комнаты
+      required:
+        - roomId

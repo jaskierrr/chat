@@ -3,9 +3,11 @@ import { EventBus } from './api/eventBus.js';
 import { handleGetRoomsList } from './handlers/getRoomsList.js';
 import { handleGetRoom } from './handlers/getRoom.js';
 import { handleSendMessage } from './handlers/sendMessage.js';
-import { state, showPage } from './state/stateManager.js';
+import { state, showPage, showLogin } from './state/stateManager.js';
 import { User } from './models/user.js';
 import { getRoomsListRequest } from './useCases/getRoomsList.js';
+import { getUsersList } from './useCases/getUsersList.js';
+import { handleGetUsersList } from './handlers/getUsersList.js';
 
 
 
@@ -20,18 +22,20 @@ async function init(token) {
 
     // Подписываемся на события из спецификации
     EventBus.subscribe('/get_rooms_list', handleGetRoomsList);
+    EventBus.subscribe('/get_users_list', handleGetUsersList);
+    EventBus.subscribe('/get_users_list', handleGetUsersList);
     EventBus.subscribe('/get_room', handleGetRoom);
     EventBus.subscribe('/send_message', handleSendMessage);
 
-
     console.log('in init')
-
 
     wsClient.connect();
 
-    showPage('chats')
+    showPage('rooms')
 
     document.getElementById('get-rooms-list')?.addEventListener('click', getRoomsListRequest)
+    document.getElementById('login')?.addEventListener('click', showLogin)
+    document.getElementById('create-room')?.addEventListener('click', getUsersList)
     //link()
 
     // Пример отправки запроса: получить список комнат

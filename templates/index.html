@@ -76,12 +76,12 @@
         margin-top: 10px;
         }
 
-        #chats-list {
+        #rooms-list {
         list-style: none;
         padding: 0;
         }
 
-        #chats-list li {
+        #rooms-list li {
         padding: 10px;
         border-bottom: 1px solid #444;
         cursor: pointer;
@@ -89,7 +89,24 @@
         color: #f0f0f0;
         }
 
-        #chats-list li:hover {
+        #rooms-list li:hover {
+        background-color: #3a3a3a;
+        }
+
+        #users-list {
+        list-style: none;
+        padding: 0;
+        }
+
+        #users-list li {
+        padding: 10px;
+        border-bottom: 1px solid #444;
+        cursor: pointer;
+        background-color: #2d2d2d;
+        color: #f0f0f0;
+        }
+
+        #users-list li:hover {
         background-color: #3a3a3a;
         }
 
@@ -136,9 +153,10 @@
 
     <body>
         <div id="app">
-            <button class="login" onclick="showPage('login_page')">Login</button>
+            <button class="login">Login</button>
             <!--<button onclick="getRoomsListRequest()" id="get-rooms-list" type="submit">Отправить</button>-->
             <button id="get-rooms-list">Список комнат</button>
+            <button id="create-room">Создать комнату</button>
             <!-- login page -->
             <div id="page-login" class="page active">
                 <h2>Войти</h2>
@@ -152,15 +170,21 @@
             </div>
 
             <!-- chats list page-->
-            <div id="page-chats" class="page">
+            <div id="page-rooms" class="page">
                 <h2>Список чатов</h2>
-                <ul id="chats-list"></ul>
+                <ul id="rooms-list"></ul>
+            </div>
+
+            <!-- chats list page-->
+            <div id="page-users" class="page">
+                <h2>Список пользователей</h2>
+                <ul id="users-list"></ul>
             </div>
 
             <!-- chat page -->
-            <div id="page-chat" class="page">
-                <button id="back-to-chats">← Назад</button>
-                <h2 id="chat-title"></h2>
+            <div id="page-room" class="page">
+                <button id="back-to-rooms">← Назад</button>
+                <h2 id="room-title"></h2>
                 <div id="messages-container"></div>
                 <form id="message-form">
                     <input type="text" id="message-input" placeholder="Напишите сообщение..." required>

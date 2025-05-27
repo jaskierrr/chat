@@ -7,7 +7,7 @@ class WSEventType(StrEnum):
     get_rooms_list = "/get_rooms_list"
     get_room = "/get_room"
     send_message = "/send_message"
-    # post_notificathion
+    get_users_list = "/get_users_list"
 
 
 class WSMessageBodyUserId(BaseModel):

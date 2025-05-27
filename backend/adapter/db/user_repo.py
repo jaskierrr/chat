@@ -23,9 +23,15 @@ class UserRepo:
         async with self.session() as session:
             sql = select(User).where(User.username == username)
             result = await session.execute(sql)
-            await session.commit()
 
         return result.scalar_one()
+
+    async def get_users_list(self, user_id) -> list[User]:
+        async with self.session() as session:
+            sql = select(User).where(User.id != user_id)
+            result = await session.execute(sql)
+
+        return result.scalars().all()
 
     def _get_session(self):
         if session := main_container.get(POSTGRES_CONN):

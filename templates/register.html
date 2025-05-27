@@ -21,7 +21,7 @@
       event.preventDefault();
 
       // Получаем значения из формы
-      const login = document.getElementById("username").value;
+      const username = document.getElementById("username").value;
       const password = document.getElementById("password").value;
 
       try {
@@ -31,7 +31,7 @@
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ login, password }),
+          body: JSON.stringify({ username, password }),
           // Отключаем автоматическое следование редиректам
           redirect: "manual"
         });

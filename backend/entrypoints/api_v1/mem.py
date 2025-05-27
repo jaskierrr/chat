@@ -71,6 +71,8 @@ class ConnectionManager:
                     response_msg = await ws_servise.get_rooms_list(user_id, message)
                 case WSEventType.get_room.value:
                     response_msg = await ws_servise.get_room(message)
+                case WSEventType.get_users_list.value:
+                    response_msg = await ws_servise.get_users_list(message)
                 case WSEventType.send_message.value:
                     response_msg = await ws_servise.send_message(user_id, message)
         except Exception as e:

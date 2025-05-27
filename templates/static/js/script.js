@@ -10,11 +10,11 @@ var socket = null;
 var token = null;
 
 let currentChatId = null;
-
-function showPage(page) {
-    Object.values(pages).forEach(p => p.classList.remove('active'));
-    pages[page].classList.add('active');
-}
+//
+// function showPage(page) {
+//     Object.values(pages).forEach(p => p.classList.remove('active'));
+//     pages[page].classList.add('active');
+// }
 
 // CHECK TOKEN ON STARTUP
 //(async function() {

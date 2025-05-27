@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 from backend.adapter.db.rooms_repo import RoomsRepo
+from backend.adapter.db.user_repo import UserRepo
 from backend.entrypoints.schemas.request_schemas import SendMessage
-from backend.entrypoints.schemas.ws_response import WSMessageBodyGetRoomsList
+from backend.entrypoints.schemas.ws_response import WSMessageBodyGetRoomsList, WSMessageBodyGetUsersList
 from backend.entrypoints.schemas.ws_schemas import (
     WSMessage,
     WSMessageBodyRoomId,
@@ -11,7 +12,7 @@ from backend.entrypoints.schemas.ws_schemas import (
 )
 
 
-class CantGetRooms(Exception):
+class CantGetSomething(Exception):
     pass
 
 class CantWriteMsg(Exception):
@@ -33,9 +34,26 @@ class WSService:
                 response_msg = WSMessage(head=head, body=body)
                 print(response_msg)
         except Exception as err:
-            raise CantGetRooms("\n\nCant get rooms for user", err)
+            raise CantGetSomething("\n\nCant get rooms for user", err)
 
-        # ЭТО ОТВЕТ ДЛЯ FASTAPI, ПЕРЕДЕЛАТЬ НА JSON ДЛЯ WS (ТИПА head, body)
+        return response_msg
+
+    async def get_users_list(self, message_data: WSMessage) -> WSMessage:
+        message = WSMessage[WSMessageBodyUserId].model_validate(message_data)
+        user_repo: UserRepo = UserRepo()
+        print(f"{message=}")
+        try:
+            if users := await user_repo.get_users_list(message.body.id):
+                body = WSMessageBodyGetUsersList.unpack_users(users)
+                head = WSMessageHead(
+                    event=message.head.event,
+                    timestamp=datetime.now(tz=timezone.utc),
+                )
+                response_msg = WSMessage(head=head, body=body)
+                print(response_msg)
+        except Exception as err:
+            raise CantGetSomething("\n\nCant get users for user", err)
+
         return response_msg
 
     async def get_room(self, message_data: WSMessage) -> WSMessage:
@@ -47,9 +65,9 @@ class WSService:
                 print("in service", room)
                 return room
             else:
-                raise CantGetRooms("\n\nCant get messages by room id")
+                raise CantGetSomething("\n\nCant get messages by room id")
         except Exception as err:
-            raise CantGetRooms("\n\nCant get messages by room id", err)
+            raise CantGetSomething("\n\nCant get messages by room id", err)
 
     async def send_message(self, user_id, message_data: WSMessage) -> WSMessage:
         print(message_data)

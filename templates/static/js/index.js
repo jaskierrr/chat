@@ -25,9 +25,8 @@ async function init(token) {
     EventBus.subscribe('/get_users_list', handleGetUsersList);
     EventBus.subscribe('/get_users_list', handleGetUsersList);
     EventBus.subscribe('/get_room', handleGetRoom);
+    EventBus.subscribe('/create_room', () => {console.log('ROOM CREATE')});
     EventBus.subscribe('/send_message', handleSendMessage);
-
-    console.log('in init')
 
     wsClient.connect();
 

@@ -1,3 +1,5 @@
+import { createRoom } from "../useCases/createRoom.js";
+
 // Здесь только логика изменения контента на странице
 export const state = {
     currentUserToken: null,
@@ -41,7 +43,7 @@ export function loadUsersList(data) {
     data.users.forEach(user => {
         const li = document.createElement('li');
         li.innerText = user.username;
-        li.addEventListener('click', () => createRoom(user.id, user.username));
+        li.addEventListener('click', () => createRoom([user.id]));
         ul.appendChild(li);
     });
 }

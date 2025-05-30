@@ -15,3 +15,7 @@ class SendMessage(BaseModel):
     room_id: UUID
     created_at: datetime
     body: str
+
+class CreateRoom(BaseModel):
+    src_user_id: str
+    other_users_ids: list[str]

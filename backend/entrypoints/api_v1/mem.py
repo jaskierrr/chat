@@ -30,7 +30,6 @@ from backend.services.auth import AuthService
 from backend.services.login import LoginService
 from backend.services.ws import WSService
 
-print(getLevelName(config.log_level))
 basicConfig(format="%(levelname)s: %(message)s", level=getLevelName(config.log_level))
 logger = getLogger(__file__)
 
@@ -75,6 +74,8 @@ class ConnectionManager:
                     response_msg = await ws_servise.get_users_list(message)
                 case WSEventType.send_message.value:
                     response_msg = await ws_servise.send_message(user_id, message)
+                case WSEventType.create_room.value:
+                    response_msg = await ws_servise.create_room(message)
         except Exception as e:
             logger.exception(f"Cant provide WS respone: {e}")
             return

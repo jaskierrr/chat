@@ -2,9 +2,10 @@ from datetime import datetime, timezone
 from backend.adapter.db.rooms_repo import RoomsRepo
 from backend.adapter.db.user_repo import UserRepo
 from backend.entrypoints.schemas.request_schemas import SendMessage
-from backend.entrypoints.schemas.ws_response import WSMessageBodyGetRoomsList, WSMessageBodyGetUsersList
+from backend.entrypoints.schemas.ws_response import RoomSchema, WSMessageBodyGetRoomsList, WSMessageBodyGetUsersList
 from backend.entrypoints.schemas.ws_schemas import (
     WSMessage,
+    WSMessageBodyCreateRoom,
     WSMessageBodyRoomId,
     WSMessageBodyRoomIdText,
     WSMessageBodyUserId,
@@ -68,6 +69,29 @@ class WSService:
                 raise CantGetSomething("\n\nCant get messages by room id")
         except Exception as err:
             raise CantGetSomething("\n\nCant get messages by room id", err)
+
+    async def create_room(self, message_data: WSMessage) -> WSMessage:
+        message = WSMessage[WSMessageBodyCreateRoom].model_validate(message_data)
+        room_repo: RoomsRepo = RoomsRepo()
+        print(f"{message=}")
+        print('\n\n\n')
+        try:
+            if room := await room_repo.create_room(message.body):
+                print("in service", room)
+
+                body = RoomSchema(id=room.id, name= room.name)
+                head = WSMessageHead(
+                    event=message.head.event,
+                    timestamp=datetime.now(tz=timezone.utc),
+                )
+                response_msg = WSMessage(head=head, body=body)
+                print(response_msg)
+            
+                return response_msg
+            else:
+                raise CantGetSomething("\n\nCant create room")
+        except Exception as err:
+            raise CantGetSomething("\n\nCant create room", err)
 
     async def send_message(self, user_id, message_data: WSMessage) -> WSMessage:
         print(message_data)

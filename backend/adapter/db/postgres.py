@@ -97,7 +97,7 @@ class Message(Base):
         comment="Room ID",
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.now, nullable=False)
-    body: Mapped[str] = mapped_column(String(500), nullable=False)
+    text: Mapped[str] = mapped_column(String(500), nullable=False)
 
     room: Mapped[Room] = relationship(back_populates="messages")
     user: Mapped[User] = relationship(back_populates="messages")

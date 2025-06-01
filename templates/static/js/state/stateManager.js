@@ -1,4 +1,5 @@
 import { createRoom } from "../useCases/createRoom.js";
+import { getRoomRequest } from "../useCases/getRoom.js";
 
 // Здесь только логика изменения контента на странице
 export const state = {
@@ -24,14 +25,14 @@ export function showLogin() {
     showPage('page-login')
 }
 
-export function loadRooms(data) {
+export function loadRoomsList(data) {
     console.log(data)
     const ul = document.getElementById('rooms-list');
     ul.innerHTML = '';
     data.rooms.forEach(room => {
         const li = document.createElement('li');
         li.innerText = room.name;
-        li.addEventListener('click', () => selectChat(room.id, room.name));
+        li.addEventListener('click', () => getRoomRequest(room.id));
         ul.appendChild(li);
     });
 }
@@ -46,4 +47,16 @@ export function loadUsersList(data) {
         li.addEventListener('click', () => createRoom([user.id]));
         ul.appendChild(li);
     });
+}
+
+export function loadRoom(data) {
+    const container = document.getElementById('messages-container');
+    container.innerHTML = '';
+    data.messages.forEach(msg => {
+        const div = document.createElement('div');
+        div.classList.add('message');
+        div.innerHTML = `<div class=\"author\">${msg.user.username}</div><div class=\"text\">${msg.text}</div>`;
+        container.appendChild(div);
+    });
+    container.scrollTop = container.scrollHeight;
 }

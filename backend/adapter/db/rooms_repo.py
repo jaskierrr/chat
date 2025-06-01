@@ -50,12 +50,12 @@ class RoomsRepo:
             sql = (
                 select(Message)
                 .where(Message.room_id == room_id)
-                .options(joinedload(Message.user), joinedload(Message.room))
+                .options(joinedload(Message.user),joinedload(Message.room))
             )
             print("SQL")
             print(sql)
             result = (await session.execute(sql)).scalars().all()
-            print(result)
+            print(result[0].user.id, result[0].room.id)
             await session.commit()
 
         return result

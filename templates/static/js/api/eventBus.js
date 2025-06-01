@@ -10,7 +10,6 @@ export const EventBus = {
   },
 
   publish(message) {
-    console.log('in publish func')
     console.log(message)
     const { head, body } = message;
     const hs = this.handlers[head.event] || [];

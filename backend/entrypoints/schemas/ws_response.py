@@ -1,8 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
-from starlette.types import Message
-from backend.adapter.db.postgres import Room, User
+from backend.adapter.db.postgres import Message, Room, User
 
 
 class UsersSchema(BaseModel):
@@ -44,13 +43,15 @@ class MessagesSchema(BaseModel):
 class WSMessageBodyGetRoom(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    room: RoomSchema | None
     messages: list[MessagesSchema]
 
     @classmethod
-    def unpack_messages(cls, messages_db: list[Message]) -> "WSMessageBodyGetRoom":
+    def unpack_messages(cls, messages_db: list[Message], rooms_db) -> "WSMessageBodyGetRoom":
         print([message for message in messages_db])
         return WSMessageBodyGetRoom(
-            messages=[MessagesSchema.model_validate(message) for message in messages_db]
+            messages=[MessagesSchema.model_validate(message) for message in messages_db],
+            room=RoomSchema.model_validate(rooms_db)
         )
 
 class UsersSchema(BaseModel):

@@ -106,35 +106,35 @@ async function Login(event) {
 //    console.log("RESPONSE", message)
 //};
 //
-function getRoomsList() {
-    // отправить json с
-    console.log('START getRoomList')
-    if (user.id) {
-        message = prepareJson('command', '/get_rooms_list', { id: user.id })
-        console.log("REQUEST", message)
-        socket.send(message);
-    }
-}
+// function getRoomsList() {
+//     // отправить json с
+//     console.log('START getRoomList')
+//     if (user.id) {
+//         message = prepareJson('command', '/get_rooms_list', { id: user.id })
+//         console.log("REQUEST", message)
+//         socket.send(message);
+//     }
+// }
 
-function getRoom() {
-    // отправить json с
-    console.log('START getRoom')
-    if (currentChatId) {
-        message = prepareJson('command', '/get_room', { id: currentChatId })
-        console.log("REQUEST", message)
-        socket.send(message);
-    }
-}
+// function getRoom() {
+//     // отправить json с
+//     console.log('START getRoom')
+//     if (currentChatId) {
+//         message = prepareJson('command', '/get_room', { id: currentChatId })
+//         console.log("REQUEST", message)
+//         socket.send(message);
+//     }
+// }
 
-function sendMessage(message_text) {
-    // отправить json с
-    console.log('START sendMessage')
-    if (currentChatId) {
-        message = prepareJson('command', '/send_message', { room_id: currentChatId, text: message_text })
-        console.log("REQUEST", message)
-        socket.send(message);
-    }
-}
+// function sendMessage(message_text) {
+//     // отправить json с
+//     console.log('START sendMessage')
+//     if (currentChatId) {
+//         message = prepareJson('command', '/send_message', { room_id: currentChatId, text: message_text })
+//         console.log("REQUEST", message)
+//         socket.send(message);
+//     }
+// }
 
 
 

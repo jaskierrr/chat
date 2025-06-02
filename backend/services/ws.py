@@ -64,8 +64,13 @@ class WSService:
         try:
             messages = await room_repo.get_messages_by_room_id(message.body.id)
             print("in service", messages)
+
+            room = await room_repo.get_room(message.body.id)
             
-            body = WSMessageBodyGetRoom.unpack_messages(messages)
+            body = WSMessageBodyGetRoom.unpack_messages(messages, room)
+            # body.room.model_validate(room)
+            print('\n\n\n', body.__dict__)
+
             head = WSMessageHead(
                 event=message.head.event,
                 timestamp=datetime.now(tz=timezone.utc),
@@ -100,27 +105,27 @@ class WSService:
         except Exception as err:
             raise CantGetSomething("\n\nCant create room", err)
 
-    async def send_message(self, user_id, message_data: WSMessage) -> WSMessage:
+    async def send_message(self, message_data: WSMessage) -> WSMessage:
         print(message_data)
         message = WSMessage[WSMessageBodyRoomIdText].model_validate(message_data)
         room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
-        message_data = SendMessage(user_id=user_id, room_id=message.body.room_id, created_at=datetime.now(), body=message.body.text)
-        try:
-            if msg := await room_repo.send_message(
-                # user_id, message.body.room_id, message.body.text
-                message_data
-            ):
-                print("in service", msg)
-
-                head = WSMessageHead(
-                    event=message.head.event,
-                    timestamp=datetime.now(tz=timezone.utc),
-                )
-
-                res = WSMessage(head=head, body=None)
-            else:
-                raise CantWriteMsg("\n\nCant write message in DB", msg)
-        except Exception as err:
-            raise CantWriteMsg("\n\nCant write message in DB", err)
-        return res
+        # message_data = SendMessage(user_id=user_id, room_id=message.body.room_id, created_at=datetime.now(), body=message.body.text)
+        # try:
+        #     if msg := await room_repo.send_message(
+        #         # user_id, message.body.room_id, message.body.text
+        #         message_data
+        #     ):
+        #         print("in service", msg)
+        #
+        #         head = WSMessageHead(
+        #             event=message.head.event,
+        #             timestamp=datetime.now(tz=timezone.utc),
+        #         )
+        #
+        #         res = WSMessage(head=head, body=None)
+        #     else:
+        #         raise CantWriteMsg("\n\nCant write message in DB", msg)
+        # except Exception as err:
+        #     raise CantWriteMsg("\n\nCant write message in DB", err)
+        # return res

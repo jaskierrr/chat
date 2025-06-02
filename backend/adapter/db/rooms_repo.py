@@ -6,7 +6,7 @@ from backend.adapter.db.postgres import Message, Room, user_room
 from backend.const import POSTGRES_CONN
 from backend.container import main_container
 from backend.entrypoints.schemas.request_schemas import SendMessage
-from backend.entrypoints.schemas.ws_schemas import WSMessageBodyCreateRoom
+from backend.entrypoints.schemas.ws_schemas import WSMessage, WSMessageBodyCreateRoom
 
 
 class RoomsRepo:
@@ -28,7 +28,9 @@ class RoomsRepo:
                 for user_id in create_room_data.other_users_ids
             ]
 
-            result = await session.execute(insert(user_room).returning(user_room), user_room_data)
+            result = await session.execute(
+                insert(user_room).returning(user_room), user_room_data
+            )
             print(result)
 
             await session.commit()
@@ -44,13 +46,20 @@ class RoomsRepo:
 
         return result
 
-    async def get_messages_by_room_id(self, room_id) -> Room | None:
+    async def get_room(self, room_id) -> Room | None:
         async with self.session() as session:
-            # sql = select(Room).join(Message).where(Room.id == room_id).join(user_room).where()
+            sql = select(Room).where(Room.id == room_id)
+            result = (await session.execute(sql)).scalar_one_or_none()
+            await session.commit()
+
+        return result
+
+    async def get_messages_by_room_id(self, room_id) -> Message | None:
+        async with self.session() as session:
             sql = (
                 select(Message)
                 .where(Message.room_id == room_id)
-                .options(joinedload(Message.user),joinedload(Message.room))
+                .options(joinedload(Message.user), joinedload(Message.room))
             )
             print("SQL")
             print(sql)
@@ -61,15 +70,21 @@ class RoomsRepo:
         return result
 
     # async def send_message(self, user_id, room_id, body):
-    async def send_message(self, message: SendMessage):
+    async def send_message(self, message: WSMessage):
         async with self.session() as session:
             # sql = insert(Message).values(user_id=user_id, room_id=room_id, body=body)
             # result = (await session.execute(sql)).scalars().all()
-            new_message = Message(**message.model_dump())
-            session.add(new_message)
-            await session.commit()
+            new_message = Message(
+                text=message.body.text,
+                user_id=message.body.user.id,
+                room_id=message.body.room.id,
+                created_at=message.head.timestamp,
+            )
+            print(new_message.__dict__)
+            # session.add(new_message)
+            # await session.commit()
 
-        return new_message
+        # return new_message
 
     def _get_session(self):
         if session := main_container.get(POSTGRES_CONN):

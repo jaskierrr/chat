@@ -1,17 +1,14 @@
-export class Message {
-  constructor({ id, sender, content, timestamp }) {
-    this.id = id;
-    this.sender = new User(sender); // связь с моделью User
-    this.content = content;
-    this.timestamp = new Date(timestamp);
-  }
+import { state } from "../state/stateManager.js";
 
-  formatTime() {
-    return this.timestamp.toLocaleTimeString('ru-RU');
+export class Message {
+  constructor(text) {
+    this.user = state.currentUser; 
+    this.room = state.currentRoom; 
+    this.text = text;
   }
 
   isEmpty() {
-    return this.content.trim().length === 0;
+    return this.text.trim().length === 0;
   }
 }
 

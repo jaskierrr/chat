@@ -1,12 +1,15 @@
+import { Message } from "../models/message.js";
 import { createRoom } from "../useCases/createRoom.js";
 import { getRoomRequest } from "../useCases/getRoom.js";
+import { sendMessage } from "../useCases/sendMessage.js";
 
 // Здесь только логика изменения контента на странице
 export const state = {
     currentUserToken: null,
     currentUser: null,
-    rooms: new Map(),    // key: roomId, value: { name, participants: [], messages: [] }
-    roomList: [],        // array of RoomSummary
+    currentRoom: null,
+    // rooms: new Map(),    // key: roomId, value: { name, participants: [], messages: [] }
+    // roomList: [],        // array of RoomSummary
 };
 
 const pages = {
@@ -59,4 +62,14 @@ export function loadRoom(data) {
         container.appendChild(div);
     });
     container.scrollTop = container.scrollHeight;
+
+    document.getElementById('message-form').addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = document.getElementById('message-form');
+        const formData = new FormData(form);
+        const text = formData.get('message-input')
+        console.log(text)
+        const message = new Message(text)
+        sendMessage(message)
+    })
 }

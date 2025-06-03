@@ -1,13 +1,17 @@
 from datetime import datetime, timezone
 from backend.adapter.db.rooms_repo import RoomsRepo
 from backend.adapter.db.user_repo import UserRepo
-from backend.entrypoints.schemas.request_schemas import SendMessage
-from backend.entrypoints.schemas.ws_response import RoomSchema, WSMessageBodyGetRoom, WSMessageBodyGetRoomsList, WSMessageBodyGetUsersList
+from backend.entrypoints.schemas.ws_response import (
+    RoomSchema,
+    WSMessageBodyGetRoom,
+    WSMessageBodyGetRoomsList,
+    WSMessageBodyGetUsersList,
+)
 from backend.entrypoints.schemas.ws_schemas import (
     WSMessage,
     WSMessageBodyCreateRoom,
+    WSMessageBodyMessage,
     WSMessageBodyRoomId,
-    WSMessageBodyRoomIdText,
     WSMessageBodyUserId,
     WSMessageHead,
 )
@@ -15,6 +19,7 @@ from backend.entrypoints.schemas.ws_schemas import (
 
 class CantGetSomething(Exception):
     pass
+
 
 class CantWriteMsg(Exception):
     pass
@@ -66,10 +71,10 @@ class WSService:
             print("in service", messages)
 
             room = await room_repo.get_room(message.body.id)
-            
+
             body = WSMessageBodyGetRoom.unpack_messages(messages, room)
             # body.room.model_validate(room)
-            print('\n\n\n', body.__dict__)
+            print("\n\n\n", body.__dict__)
 
             head = WSMessageHead(
                 event=message.head.event,
@@ -86,12 +91,12 @@ class WSService:
         message = WSMessage[WSMessageBodyCreateRoom].model_validate(message_data)
         room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
-        print('\n\n\n')
+        print("\n\n\n")
         try:
             if room := await room_repo.create_room(message.body):
                 print("in service", room)
 
-                body = RoomSchema(id=room.id, name= room.name)
+                body = RoomSchema(id=room.id, name=room.name)
                 head = WSMessageHead(
                     event=message.head.event,
                     timestamp=datetime.now(tz=timezone.utc),
@@ -107,25 +112,28 @@ class WSService:
 
     async def send_message(self, message_data: WSMessage) -> WSMessage:
         print(message_data)
-        message = WSMessage[WSMessageBodyRoomIdText].model_validate(message_data)
+        message = WSMessage[WSMessageBodyMessage].model_validate(message_data)
         room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
-        # message_data = SendMessage(user_id=user_id, room_id=message.body.room_id, created_at=datetime.now(), body=message.body.text)
-        # try:
-        #     if msg := await room_repo.send_message(
-        #         # user_id, message.body.room_id, message.body.text
-        #         message_data
-        #     ):
-        #         print("in service", msg)
-        #
-        #         head = WSMessageHead(
-        #             event=message.head.event,
-        #             timestamp=datetime.now(tz=timezone.utc),
-        #         )
-        #
-        #         res = WSMessage(head=head, body=None)
-        #     else:
-        #         raise CantWriteMsg("\n\nCant write message in DB", msg)
-        # except Exception as err:
-        #     raise CantWriteMsg("\n\nCant write message in DB", err)
-        # return res
+        try:
+            if msg := await room_repo.send_message(message):
+                print("in service", msg)
+
+                messages = await room_repo.get_messages_by_room_id(message.body.message.room_id)
+                print("in service", messages)
+
+                room = await room_repo.get_room(message.body.message.room_id)
+
+                body = WSMessageBodyGetRoom.unpack_messages(messages, room)
+
+                head = WSMessageHead(
+                    event=message.head.event,
+                    timestamp=datetime.now(tz=timezone.utc),
+                )
+
+                res = WSMessage(head=head, body=body)
+            else:
+                raise CantWriteMsg("\n\nCant write message in DB", msg)
+        except Exception as err:
+            raise CantWriteMsg("\n\nCant write message in DB", err)
+        return res

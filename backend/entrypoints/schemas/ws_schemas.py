@@ -4,7 +4,7 @@ import uuid
 from pydantic import BaseModel
 from enum import StrEnum
 
-from backend.adapter.db.postgres import Room, User
+
 
 class WSEventType(StrEnum):
     get_rooms_list = "/get_rooms_list"
@@ -17,17 +17,23 @@ class WSEventType(StrEnum):
 class WSMessageBodyUserId(BaseModel):
     id: str
 
+
 class WSMessageBodyRoomId(BaseModel):
     id: str
 
-class WSMessageBodyRoomIdText(BaseModel):
+class WSMessageBodyMessageData(BaseModel):
     text: str
-    room: Room
-    user: User
+    room_id: str
+    user_id: str
+
+class WSMessageBodyMessage(BaseModel):
+    message: WSMessageBodyMessageData
+
 
 class WSMessageBodyCreateRoom(BaseModel):
     src_user_id: uuid.UUID
     other_users_ids: list[uuid.UUID]
+
 
 class WSMessageHead(BaseModel):
     event: WSEventType | None = None

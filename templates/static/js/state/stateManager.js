@@ -68,8 +68,8 @@ export function loadRoom(data) {
         const form = document.getElementById('message-form');
         const formData = new FormData(form);
         const text = formData.get('message-input')
-        console.log(text)
-        const message = new Message(text)
-        sendMessage(message)
+        console.log('message text:', text)
+        sendMessage(text)
+        form.reset()
     })
 }

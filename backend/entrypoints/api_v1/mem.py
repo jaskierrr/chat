@@ -71,7 +71,7 @@ class ConnectionManager:
                 case WSEventType.get_room.value:
                     response_msg = await ws_servise.get_room(message)
                 case WSEventType.send_message.value:
-                    response_msg = await ws_servise.send_message(user_id, message)
+                    response_msg = await ws_servise.send_message(message)
                 case WSEventType.get_users_list.value:
                     response_msg = await ws_servise.get_users_list(message)
                 case WSEventType.create_room.value:

@@ -5,7 +5,6 @@ from sqlalchemy.orm import joinedload
 from backend.adapter.db.postgres import Message, Room, user_room
 from backend.const import POSTGRES_CONN
 from backend.container import main_container
-from backend.entrypoints.schemas.request_schemas import SendMessage
 from backend.entrypoints.schemas.ws_schemas import WSMessage, WSMessageBodyCreateRoom
 
 
@@ -69,22 +68,21 @@ class RoomsRepo:
 
         return result
 
-    # async def send_message(self, user_id, room_id, body):
     async def send_message(self, message: WSMessage):
         async with self.session() as session:
-            # sql = insert(Message).values(user_id=user_id, room_id=room_id, body=body)
-            # result = (await session.execute(sql)).scalars().all()
+
             new_message = Message(
-                text=message.body.text,
-                user_id=message.body.user.id,
-                room_id=message.body.room.id,
+                text=message.body.message.text,
+                user_id=message.body.message.user_id,
+                room_id=message.body.message.room_id,
                 created_at=message.head.timestamp,
             )
-            print(new_message.__dict__)
-            # session.add(new_message)
-            # await session.commit()
 
-        # return new_message
+            print(f'{new_message.__dict__=}')
+            session.add(new_message)
+            await session.commit()
+
+        return new_message
 
     def _get_session(self):
         if session := main_container.get(POSTGRES_CONN):

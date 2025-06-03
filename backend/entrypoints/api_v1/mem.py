@@ -1,6 +1,7 @@
 import json
 from logging import basicConfig, getLevelName, getLogger
 from typing import Annotated, Any
+import uuid
 
 from asyncpg.exceptions import UniqueViolationError
 from fastapi import (
@@ -48,32 +49,44 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections = {}
 
-    async def connect(self, websocket: WebSocket, user_id: str):
+    async def connect(self, websocket: WebSocket, user_id: uuid.UUID):
         await websocket.accept()
         self.active_connections[user_id] = websocket
 
-    def disconnect(self, user_id: str):
+    def disconnect(self, user_id: uuid.UUID):
         self.active_connections.pop(user_id, None)
 
-    async def broadcast(self, message: str):
-        for user_id in self.active_connections:
-            await self.active_connections[user_id].send_text(message)
+    async def broadcast(self, message: WSMessage, users_ids: list[uuid.UUID]):
+        filtered_connections = set(self.active_connections.keys()) & set(users_ids)
+        # TODO: написать метод для отправки уведомлений неактивным пользователям
+        # offline_users = filtered_connections - set(users_ids)
 
-    async def send_message(self, user_id: str, message: WSMessage):
+        print('\n\n\n\n', users_ids, self.active_connections.keys(), filtered_connections)
+        for user_id in filtered_connections:
+            ws = self.active_connections[user_id]
+            print(ws, user_id, message)
+            await ws.send_text(message)
+
+    async def send_message(self, user_id: uuid.UUID, message: WSMessage):
         await self.active_connections[user_id].send_text(message)
 
     async def router(self, user_id: str, message: dict[str, Any]):
         print(message)
+        broadcast_users = None
         try:
             match message["head"]["event"]:
                 case WSEventType.get_rooms_list.value:
                     response_msg = await ws_servise.get_rooms_list(user_id, message)
+
                 case WSEventType.get_room.value:
                     response_msg = await ws_servise.get_room(message)
+
                 case WSEventType.send_message.value:
-                    response_msg = await ws_servise.send_message(message)
+                    response_msg, broadcast_users = await ws_servise.send_message(message)
+
                 case WSEventType.get_users_list.value:
                     response_msg = await ws_servise.get_users_list(message)
+
                 case WSEventType.create_room.value:
                     response_msg = await ws_servise.create_room(message)
         except Exception as e:
@@ -81,7 +94,11 @@ class ConnectionManager:
             return
 
         res = response_msg.model_dump_json()
-        await self.send_message(user_id, res)
+        await self.send_message(uuid.UUID(user_id), res)
+
+        if broadcast_users:
+            await self.broadcast(res, broadcast_users)
+
         logger.info("msg sent %s, %s", self.active_connections.keys(), user_id)
 
 
@@ -104,7 +121,7 @@ async def websocket_endpoint(
 ):
     # print(f'{cookie_or_token=}')
     user_id = auth.decodeJWT(cookie_or_token)["user_id"]
-    await manager.connect(websocket, user_id)
+    await manager.connect(websocket, uuid.UUID(user_id))
 
     try:
         # сменить на async

@@ -1,4 +1,5 @@
-from sqlalchemy import insert, select
+import uuid
+from sqlalchemy import and_, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -35,6 +36,20 @@ class RoomsRepo:
             await session.commit()
         return room
 
+    async def get_users_ids_by_room_id(
+        self, room_id: uuid.UUID, user_id: uuid.UUID
+    ) -> list[uuid.UUID]:
+        async with self.session() as session:
+            users_ids = await session.execute(
+                select(user_room.c.user_id).where(
+                    and_(
+                        user_room.c.room_id == room_id,
+                        user_room.c.user_id != user_id,
+                    )
+                )
+            )
+            return users_ids.scalars().all()
+
     async def get_rooms_list(self, target_user_id) -> list[Room] | None:
         async with self.session() as session:
             sql = (
@@ -70,7 +85,6 @@ class RoomsRepo:
 
     async def send_message(self, message: WSMessage):
         async with self.session() as session:
-
             new_message = Message(
                 text=message.body.message.text,
                 user_id=message.body.message.user_id,
@@ -78,7 +92,7 @@ class RoomsRepo:
                 created_at=message.head.timestamp,
             )
 
-            print(f'{new_message.__dict__=}')
+            print(f"{new_message.__dict__=}")
             session.add(new_message)
             await session.commit()
 

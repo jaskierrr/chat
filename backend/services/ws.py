@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import uuid
 from backend.adapter.db.rooms_repo import RoomsRepo
 from backend.adapter.db.user_repo import UserRepo
 from backend.entrypoints.schemas.ws_response import (
@@ -110,7 +111,9 @@ class WSService:
         except Exception as err:
             raise CantGetSomething("\n\nCant create room", err)
 
-    async def send_message(self, message_data: WSMessage) -> WSMessage:
+    async def send_message(
+        self, message_data: WSMessage
+    ) -> tuple[WSMessage, list[uuid.UUID]]:
         print(message_data)
         message = WSMessage[WSMessageBodyMessage].model_validate(message_data)
         room_repo: RoomsRepo = RoomsRepo()
@@ -119,21 +122,27 @@ class WSService:
             if msg := await room_repo.send_message(message):
                 print("in service", msg)
 
-                messages = await room_repo.get_messages_by_room_id(message.body.message.room_id)
+                messages = await room_repo.get_messages_by_room_id(
+                    message.body.message.room_id
+                )
                 print("in service", messages)
 
                 room = await room_repo.get_room(message.body.message.room_id)
-
                 body = WSMessageBodyGetRoom.unpack_messages(messages, room)
-
                 head = WSMessageHead(
                     event=message.head.event,
                     timestamp=datetime.now(tz=timezone.utc),
                 )
 
                 res = WSMessage(head=head, body=body)
+
+                users_ids = await room_repo.get_users_ids_by_room_id(
+                    message.body.message.room_id, message.body.message.user_id
+                )
+
             else:
                 raise CantWriteMsg("\n\nCant write message in DB", msg)
         except Exception as err:
             raise CantWriteMsg("\n\nCant write message in DB", err)
-        return res
+
+        return res, users_ids

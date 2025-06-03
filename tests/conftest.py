@@ -8,7 +8,7 @@ import sqlalchemy_utils
 
 from backend.config import Config
 from aiohttp import request
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from backend.adapter.db.postgres import Base
 import sqlalchemy as sa
 from yarl import URL
@@ -16,6 +16,7 @@ from typing import Any
 from faker import Faker
 
 
+pytest_plugins = ['tests.fixtures.users']
 
 @pytest.fixture(scope='session')
 def config():
@@ -28,7 +29,7 @@ def sa_engine_db(config: Config) -> Any:
     http://www.moscowpython.ru/meetup/69/talk-from-yandex/
     """
     database_name = f'{uuid.uuid4().hex}.pytest'
-    database_url = str(URL(config.db.dsn).with_scheme('postgresql').with_path(database_name))
+    database_url = str(URL(config.db.dsn.unicode_string()).with_scheme('postgresql').with_path(database_name))
 
     sqlalchemy_utils.create_database(database_url)
 
@@ -58,19 +59,22 @@ def db_engine(sa_engine_db: Any) -> Any:
             tables = ','.join(str(table) for table in Base.metadata.sorted_tables)
             connection.execute(sa.text(f'TRUNCATE TABLE {tables}'))
 
-
 @pytest.fixture
-async def db_session(sa_engine_db: Any, config: Any) -> Any:
+async def async_db_connection(sa_engine_db: Any, config: Any) -> Any:
     dsn = URL(str(sa_engine_db.url)).with_password(sa_engine_db.url.password).with_scheme('postgresql+asyncpg')
     try:
-        conn = create_async_engine(str(dsn))
-        async with conn.connect() as session:
-            yield session
+        engine = create_async_engine(str(dsn))
+        connection = async_sessionmaker(engine, expire_on_commit=False)
+        yield connection
     finally:
         with sa_engine_db.connect() as connection:
             tables = ','.join(str(table) for table in Base.metadata.sorted_tables)
             connection.execute(sa.text(f'TRUNCATE TABLE {tables}'))
 
+@pytest.fixture
+async def db_session(async_db_connection: Any, config: Any) -> Any:
+    async with async_db_connection() as session:
+        yield session
 
 @pytest.fixture
 def redis_client_sync(config):

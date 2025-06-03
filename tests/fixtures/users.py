@@ -4,12 +4,12 @@ from sqlalchemy.orm import Session
 from backend.adapter.db.postgres import User
 
 
-@pytest.fixture()
-async def create_user(db_session: Session, fake):
-    def factory(login, **kwargs):
+@pytest.fixture(scope='function')
+def create_user(db_session: Session, fake):
+    async def factory(login, **kwargs):
         password = kwargs.get('password', fake.pystr())
 
-        user = User(login=login, _password=password)
+        user = User(login=login, _password=password.encode())
 
         db_session.add(user)
         await db_session.commit()

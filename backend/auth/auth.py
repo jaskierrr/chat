@@ -1,35 +1,36 @@
+from typing import Dict
+import jwt
 from datetime import datetime, timezone, timedelta
 from fastapi import HTTPException, status
-import jwt
 from jwt.exceptions import InvalidTokenError
-from chat.adapter.db.user_repo import UserRepo
-from config import config
+from backend.adapter.db.postgres import User
+from backend.adapter.db.user_repo import UserRepo
+from backend.config import config
 
-from chat.entrypoint.schemas.request_schemas import UserLogin
 
-
-async def authenticate_user(db: UserRepo, user: UserLogin):
+async def authenticate_user(db: UserRepo, user: User):
     # запрос в базу с проверкой пароля
 
-    user = await db.get(user.login)
+    user = await db.get(user.username)
 
-    return True
+    return user
 
 
-def encodeJWT(user: UserLogin):
+def encodeJWT(user: User):
     if config.auth.ttl:
-        # exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
-        exp = datetime.now(tz=timezone.utc) + timedelta(seconds=100000)
+        exp = datetime.now(tz=timezone.utc) + timedelta(seconds=config.auth.ttl)
         pass
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
 
-    payload = {"sub": user.login, "exp": exp}
+    print(user.id)
+
+    payload = {"username": user.username, "user_id": str(user.id), "exp": exp}
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 
 
-def decodeJWT(token: str):
+def decodeJWT(token: str) -> Dict[str, str]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -42,7 +43,7 @@ def decodeJWT(token: str):
     )
     try:
         payload = jwt.decode(token, config.auth.secret, "HS512")
-        if payload.get("sub") is None:
+        if payload.get("username") is None or payload.get("user_id") is None:
             raise credentials_exception_for_sub
     except InvalidTokenError:
         raise credentials_exception
@@ -54,5 +55,5 @@ def decodeJWT(token: str):
     #
     # return user
 
-    print("Token correct")
-    return True
+    print("Token correct", token)
+    return payload

@@ -2,8 +2,8 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from chat.config import config as main_config
-from chat.adapter.db.postgres import Base
+from backend.config import config as main_config
+from backend.adapter.db.postgres import Base
 from yarl import URL
 
 from alembic import context

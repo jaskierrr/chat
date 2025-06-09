@@ -8,9 +8,8 @@ from backend.adapter.db.user_repo import UserRepo
 from backend.config import config
 
 
-async def authenticate_user(db: UserRepo, user: User):
-    # запрос в базу с проверкой пароля
 
+async def authenticate_user(db: UserRepo, user: User):
     user = await db.get(user.username)
 
     return user
@@ -23,14 +22,12 @@ def encodeJWT(user: User):
     else:
         exp = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
 
-    print(user.id)
-
     payload = {"username": user.username, "user_id": str(user.id), "exp": exp}
 
     return jwt.encode(payload, config.auth.secret, "HS512")
 
 
-def decodeJWT(token: str) -> Dict[str, str]:
+def decodeJWT(user_repo: UserRepo, token: str) -> Dict[str, str]:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -48,12 +45,12 @@ def decodeJWT(token: str) -> Dict[str, str]:
     except InvalidTokenError:
         raise credentials_exception
 
-    # user = get_user(payload.username)
-    #     # сходить в базу и вернуть юзера
-    # if user is None:
-    #     raise credentials_exception
-    #
-    # return user
+    try:
+        user = user_repo.get(payload.get('username'))
+        if user is None:
+            raise credentials_exception
+    except Exception:
+        raise
 
     print("Token correct", token)
     return payload

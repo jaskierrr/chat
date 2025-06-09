@@ -48,7 +48,6 @@ class WSMessageBodyGetRoom(BaseModel):
 
     @classmethod
     def unpack_messages(cls, messages_db: list[Message], rooms_db) -> "WSMessageBodyGetRoom":
-        print([message for message in messages_db])
         return WSMessageBodyGetRoom(
             messages=[MessagesSchema.model_validate(message) for message in messages_db],
             room=RoomSchema.model_validate(rooms_db)

@@ -19,6 +19,7 @@ async def lifespan(app: FastAPI):
     await close_redis_pool()
 
 app = FastAPI(lifespan=lifespan)
+# app = FastAPI(dependencies=[Depends(create_session)])
 
 CURRENT_DIR = Path(__file__).resolve().parent
 ROOT_DIR = CURRENT_DIR.parent  # или сколько нужно уровней вверх

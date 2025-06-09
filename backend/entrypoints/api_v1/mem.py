@@ -3,7 +3,6 @@ from logging import basicConfig, getLevelName, getLogger
 from typing import Annotated, Any
 import uuid
 
-from asyncpg.exceptions import UniqueViolationError
 from fastapi import (
     APIRouter,
     Depends,
@@ -17,10 +16,11 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.exc import IntegrityError, NoResultFound
+from sqlalchemy.exc import NoResultFound
 
+from backend.adapter.db import rooms_repo
 from backend.adapter.db.user_repo import UserRepo
-from backend.auth import auth
+from backend.auth.auth import decodeJWT, encodeJWT
 from backend.config import config
 from backend.entrypoints.schemas.request_schemas import UserLogin
 from backend.entrypoints.schemas.ws_schemas import (
@@ -36,18 +36,31 @@ logger = getLogger(__file__)
 
 m_router = APIRouter()
 
-auth_service = AuthService()
-login_service = LoginService()
-ws_servise = WSService()
 
-# templates = Jinja2Templates(directory="backend/templates")
+def get_auth_service():
+    return AuthService()
+
+def get_login_service():
+    return LoginService()
+
+def get_ws_service():
+    return WSService()
+
+def get_connection_manager():
+    return ConnectionManager(ws_servise=get_ws_service())
+
+def get_user_repo():
+    return UserRepo()
+
+
 templates = Jinja2Templates(directory="templates")
 
 
 # Менеджер подключений для работы с WebSocket
 class ConnectionManager:
-    def __init__(self):
+    def __init__(self, ws_servise: WSService):
         self.active_connections = {}
+        self.ws_servise = ws_servise
 
     async def connect(self, websocket: WebSocket, user_id: uuid.UUID):
         await websocket.accept()
@@ -61,10 +74,8 @@ class ConnectionManager:
         # TODO: написать метод для отправки уведомлений неактивным пользователям
         # offline_users = filtered_connections - set(users_ids)
 
-        print('\n\n\n\n', users_ids, self.active_connections.keys(), filtered_connections)
         for user_id in filtered_connections:
             ws = self.active_connections[user_id]
-            print(ws, user_id, message)
             await ws.send_text(message)
 
     async def send_message(self, user_id: uuid.UUID, message: WSMessage):
@@ -76,19 +87,21 @@ class ConnectionManager:
         try:
             match message["head"]["event"]:
                 case WSEventType.get_rooms_list.value:
-                    response_msg = await ws_servise.get_rooms_list(user_id, message)
+                    response_msg = await self.ws_servise.get_rooms_list(user_id, message)
 
                 case WSEventType.get_room.value:
-                    response_msg = await ws_servise.get_room(message)
+                    response_msg = await self.ws_servise.get_room(message)
 
                 case WSEventType.send_message.value:
-                    response_msg, broadcast_users = await ws_servise.send_message(message)
+                    response_msg, broadcast_users = await self.ws_servise.send_message(
+                        message
+                    )
 
                 case WSEventType.get_users_list.value:
-                    response_msg = await ws_servise.get_users_list(message)
+                    response_msg = await self.ws_servise.get_users_list(message)
 
                 case WSEventType.create_room.value:
-                    response_msg = await ws_servise.create_room(message)
+                    response_msg = await self.ws_servise.create_room(message)
         except Exception as e:
             logger.exception(f"Cant provide WS respone: {e}")
             return
@@ -102,14 +115,10 @@ class ConnectionManager:
         logger.info("msg sent %s, %s", self.active_connections.keys(), user_id)
 
 
-manager = ConnectionManager()
-
-
 async def get_token(
     websocket: WebSocket,
     token: Annotated[str | None, Query()] = None,
 ):
-    # print('lol')
     if token is None:
         raise WebSocketException(code=status.WS_1008_POLICY_VIOLATION)
     return token
@@ -117,21 +126,22 @@ async def get_token(
 
 @m_router.websocket("/ws")
 async def websocket_endpoint(
-    websocket: WebSocket, cookie_or_token: Annotated[str, Depends(get_token)]
+    websocket: WebSocket,
+    cookie_or_token: Annotated[str, Depends(get_token)],
+    manager: Annotated[ConnectionManager, Depends(get_connection_manager)],
+    user_repo: Annotated[UserRepo, Depends(get_user_repo)]
 ):
-    # print(f'{cookie_or_token=}')
-    user_id = auth.decodeJWT(cookie_or_token)["user_id"]
+    user_id = decodeJWT(user_repo, cookie_or_token)["user_id"]
     await manager.connect(websocket, uuid.UUID(user_id))
 
     try:
         # сменить на async
         while True:
             data = await websocket.receive_text()
-            print(data)
             data = json.loads(data)
             await manager.router(user_id, data)
     except WebSocketDisconnect:
-        user_id = auth.decodeJWT(cookie_or_token)["user_id"]
+        user_id = decodeJWT(rooms_repo, cookie_or_token)["user_id"]
         manager.disconnect(user_id)
 
 
@@ -141,7 +151,7 @@ async def send_login_page(request: Request):
 
 
 @m_router.post("/token")
-async def validate_token(request: Request):
+async def validate_token(request: Request, auth_service: Annotated[AuthService, Depends(get_auth_service)]):
     token_payload = auth_service.validate_token(request)
     try:
         user_id = {"id": token_payload["user_id"]}
@@ -151,9 +161,9 @@ async def validate_token(request: Request):
 
 
 @m_router.post("/login")
-async def provide_login(user_data: UserLogin, user_repo: UserRepo = Depends(UserRepo)):
+async def provide_login(user_data: UserLogin, login_service: Annotated[LoginService, Depends(get_login_service)]):
     try:
-        user = await login_service.login_user(user_data, user_repo)
+        user = await login_service.login_user(user_data)
     except NoResultFound as err:
         logger.error(f"Error occured: {err}")
 
@@ -162,18 +172,8 @@ async def provide_login(user_data: UserLogin, user_repo: UserRepo = Depends(User
         )
         return response
 
-    token = auth.encodeJWT(user)
-    print("\ntoken", token)
-
-    # user_id = {"id": str(user.id)}
-    # res = UserResponse(**user.dict(exclude={'password'}))
-    # data = user.__dict__.copy()
-    # data.pop('_sa_instance_state', None)
-    # data.pop('_password', None)
-    # res = UserResponse(**data)
-    res = {'username': str(user.username), 'id': str(user.id)}
-
-    print("user", res)
+    token = encodeJWT(user)
+    res = {"username": str(user.username), "id": str(user.id)}
 
     response = JSONResponse(content=res, status_code=200)
     response.set_cookie(key="token", value=token)
@@ -185,25 +185,21 @@ async def provide_login(user_data: UserLogin, user_repo: UserRepo = Depends(User
 async def send_register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
-
-@m_router.post("/register")
-async def provide_register(user: UserLogin, request: Request):
-    user_repo = UserRepo()
-
-    try:
-        await user_repo.create(user)
-    except (UniqueViolationError, IntegrityError) as err:
-        logger.info(f"Error occured: {err}")
-
-        return templates.TemplateResponse(
-            "register.html", {"request": request}, status_code=422
-        )
-
-    token = auth.encodeJWT(user)
-    print("\ntoken", token)
-
-    response = Response(status_code=200)
-    response.set_cookie(key="token", value=token)
-    # response.headers["location"] = "/chat"
-
-    return response
+# TODO: переделать на сервис
+# @m_router.post("/register")
+# async def provide_register(user: UserLogin, request: Request):
+#     try:
+#         await user_repo.create(user)
+#     except (UniqueViolationError, IntegrityError) as err:
+#         logger.info(f"Error occured: {err}")
+#
+#         return templates.TemplateResponse(
+#             "register.html", {"request": request}, status_code=422
+#         )
+#
+#     token = encodeJWT(user)
+#
+#     response = Response(status_code=200)
+#     response.set_cookie(key="token", value=token)
+#
+#     return response

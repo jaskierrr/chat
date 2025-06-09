@@ -15,6 +15,8 @@ from yarl import URL
 from typing import Any
 from faker import Faker
 
+from backend.const import POSTGRES_CONN
+
 
 pytest_plugins = ['tests.fixtures.users']
 
@@ -96,3 +98,8 @@ async def client():
 @pytest.fixture()
 def fake():
     return Faker('ru_Ru')
+
+@pytest.fixture()
+def fake_main_container(monkeypatch, async_db_connection):
+    fake_main_cont = {POSTGRES_CONN: async_db_connection}
+    monkeypatch.setattr('backend.adapter.db.user_repo.main_container', fake_main_cont)

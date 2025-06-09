@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import uuid
+from backend.adapter.db import rooms_repo
 from backend.adapter.db.rooms_repo import RoomsRepo
 from backend.adapter.db.user_repo import UserRepo
 from backend.entrypoints.schemas.ws_response import (
@@ -27,12 +28,15 @@ class CantWriteMsg(Exception):
 
 
 class WSService:
+    def __init__(self) -> None:
+        self.user_repo = UserRepo()
+        self.room_repo = RoomsRepo()
+
     async def get_rooms_list(self, user_id, message_data: WSMessage) -> WSMessage:
         message = WSMessage[WSMessageBodyUserId].model_validate(message_data)
-        room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
         try:
-            if rooms := await room_repo.get_rooms_list(message.body.id):
+            if rooms := await self.room_repo.get_rooms_list(message.body.id):
                 body = WSMessageBodyGetRoomsList.unpack_rooms(rooms)
                 head = WSMessageHead(
                     event=message.head.event,
@@ -47,10 +51,9 @@ class WSService:
 
     async def get_users_list(self, message_data: WSMessage) -> WSMessage:
         message = WSMessage[WSMessageBodyUserId].model_validate(message_data)
-        user_repo: UserRepo = UserRepo()
         print(f"{message=}")
         try:
-            if users := await user_repo.get_users_list(message.body.id):
+            if users := await self.user_repo.get_users_list(message.body.id):
                 body = WSMessageBodyGetUsersList.unpack_users(users)
                 head = WSMessageHead(
                     event=message.head.event,
@@ -65,17 +68,14 @@ class WSService:
 
     async def get_room(self, message_data: WSMessage) -> WSMessage:
         message = WSMessage[WSMessageBodyRoomId].model_validate(message_data)
-        room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
         try:
-            messages = await room_repo.get_messages_by_room_id(message.body.id)
+            messages = await self.room_repo.get_messages_by_room_id(message.body.id)
             print("in service", messages)
 
-            room = await room_repo.get_room(message.body.id)
+            room = await self.room_repo.get_room(message.body.id)
 
             body = WSMessageBodyGetRoom.unpack_messages(messages, room)
-            # body.room.model_validate(room)
-            print("\n\n\n", body.__dict__)
 
             head = WSMessageHead(
                 event=message.head.event,
@@ -90,12 +90,9 @@ class WSService:
 
     async def create_room(self, message_data: WSMessage) -> WSMessage:
         message = WSMessage[WSMessageBodyCreateRoom].model_validate(message_data)
-        room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
-        print("\n\n\n")
         try:
-            if room := await room_repo.create_room(message.body):
-                print("in service", room)
+            if room := await self.room_repo.create_room(message.body):
 
                 body = RoomSchema(id=room.id, name=room.name)
                 head = WSMessageHead(
@@ -116,18 +113,16 @@ class WSService:
     ) -> tuple[WSMessage, list[uuid.UUID]]:
         print(message_data)
         message = WSMessage[WSMessageBodyMessage].model_validate(message_data)
-        room_repo: RoomsRepo = RoomsRepo()
         print(f"{message=}")
         try:
-            if msg := await room_repo.send_message(message):
+            if msg := await self.room_repo.send_message(message):
                 print("in service", msg)
 
-                messages = await room_repo.get_messages_by_room_id(
+                messages = await self.room_repo.get_messages_by_room_id(
                     message.body.message.room_id
                 )
-                print("in service", messages)
 
-                room = await room_repo.get_room(message.body.message.room_id)
+                room = await self.room_repo.get_room(message.body.message.room_id)
                 body = WSMessageBodyGetRoom.unpack_messages(messages, room)
                 head = WSMessageHead(
                     event=message.head.event,
@@ -136,7 +131,7 @@ class WSService:
 
                 res = WSMessage(head=head, body=body)
 
-                users_ids = await room_repo.get_users_ids_by_room_id(
+                users_ids = await self.room_repo.get_users_ids_by_room_id(
                     message.body.message.room_id, message.body.message.user_id
                 )
 

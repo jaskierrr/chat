@@ -6,10 +6,10 @@ from backend.adapter.db.postgres import User
 
 @pytest.fixture(scope='function')
 def create_user(db_session: Session, fake):
-    async def factory(login, **kwargs):
+    async def factory(username, **kwargs):
         password = kwargs.get('password', fake.pystr())
 
-        user = User(login=login, _password=password.encode())
+        user = User(username=username, _password=password.encode())
 
         db_session.add(user)
         await db_session.commit()

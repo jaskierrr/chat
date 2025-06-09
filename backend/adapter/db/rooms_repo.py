@@ -17,7 +17,6 @@ class RoomsRepo:
         async with self.session() as session:
             room = Room(name=f"Room from: {create_room_data.src_user_id}")
             session.add(room)
-            print(room)
 
             await session.commit()
 
@@ -75,10 +74,7 @@ class RoomsRepo:
                 .where(Message.room_id == room_id)
                 .options(joinedload(Message.user), joinedload(Message.room))
             )
-            print("SQL")
-            print(sql)
             result = (await session.execute(sql)).scalars().all()
-            print(result[0].user.id, result[0].room.id)
             await session.commit()
 
         return result
@@ -92,7 +88,6 @@ class RoomsRepo:
                 created_at=message.head.timestamp,
             )
 
-            print(f"{new_message.__dict__=}")
             session.add(new_message)
             await session.commit()
 
